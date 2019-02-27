@@ -15,11 +15,11 @@ backtrader
 .. image:: https://img.shields.io/pypi/l/backtrader.svg
    :alt: License
    :scale: 100%
-   :target: https://github.com/mementum/backtrader/blob/master/LICENSE
-.. image:: https://travis-ci.org/mementum/backtrader.png?branch=master
+   :target: https://github.com/backtrader/backtrader/blob/master/LICENSE
+.. image:: https://travis-ci.org/backtrader/backtrader.png?branch=master
    :alt: Travis-ci Build Status
    :scale: 100%
-   :target: https://travis-ci.org/mementum/backtrader
+   :target: https://travis-ci.org/backtrader/backtrader
 .. image:: https://img.shields.io/pypi/pyversions/backtrader.svg
    :alt: Python versions
    :scale: 100%
@@ -27,11 +27,15 @@ backtrader
 
 **Yahoo API Note**:
 
-  With release ``1.9.50.117`` data samples and YahooFinance data feeds have
-  been updated to the latest available information. But being the format not
-  documented, there could still be changes and unexpected corners.
+  [2018-11-16] After some testing it would seem that data downloads can be
+  again relied upon over the web interface (or API ``v7``)
 
-For **feedback/questions/issues** use the `Community <https://community.backtrader.com>`_
+**Tickets**
+
+  If it's **NOT an issue** (i.e.: bug), don't post it as an issue. It will be
+  automatically closed.
+
+For **feedback/questions/...** use the `Community <https://community.backtrader.com>`_
 
 Here a snippet of a Simple Moving Average CrossOver. It can be done in several
 different ways. Use the docs (and examples) Luke!
@@ -49,7 +53,7 @@ different ways. Use the docs (and examples) Luke!
   cerebro = bt.Cerebro()
   cerebro.addstrategy(SmaCross)
 
-  data0 = bt.feeds.YahooFinanceData(dataname='YHOO', fromdate=datetime(2011, 1, 1),
+  data0 = bt.feeds.YahooFinanceData(dataname='MSFT', fromdate=datetime(2011, 1, 1),
                                     todate=datetime(2012, 12, 31))
   cerebro.adddata(data0)
 
@@ -75,7 +79,8 @@ Live Trading and backtesting platform written in Python.
       streaming when implemented)
 
   - Data feeds from csv/files, online sources or from *pandas* and *blaze*
-  - Filters for datas (like breaking a daily bar into chunks to simulate intraday)
+  - Filters for datas, like breaking a daily bar into chunks to simulate
+    intraday or working with Renko bricks
   - Multiple data feeds and multiple strategies supported
   - Multiple timeframes at once
   - Integrated Resampling and Replaying
@@ -84,11 +89,16 @@ Live Trading and backtesting platform written in Python.
   - *TA-Lib* indicator support (needs python *ta-lib* / check the docs)
   - Easy development of custom indicators
   - Analyzers (for example: TimeReturn, Sharpe Ratio, SQN) and ``pyfolio``
-    integration
+    integration (**deprecated**)
   - Flexible definition of commission schemes
   - Integrated broker simulation with *Market*, *Close*, *Limit*, *Stop*,
-    *StopLimit*, *StopTrail*, *StopTrailLimit*and *OCO*, orders, slippage and
-    continuous cash adjustmet for future-like instruments
+    *StopLimit*, *StopTrail*, *StopTrailLimit*and *OCO* orders, bracket order,
+    slippage, volume filling strategies and continuous cash adjustmet for
+    future-like instruments
+  - Sizers for automated staking
+  - Cheat-on-Close and Cheat-on-Open modes
+  - Schedulers
+  - Trading Calendars
   - Plotting (requires matplotlib)
 
 Documentation
@@ -102,7 +112,7 @@ Read the full documentation at:
 
   - `Documentation <http://www.backtrader.com/docu>`_
 
-List of built-in Indicators (116)
+List of built-in Indicators (122)
 
   - `Indicators Reference <http://www.backtrader.com/docu/indautoref.html>`_
 
@@ -110,7 +120,7 @@ Python 2/3 Support
 ==================
 
   - Python ``2.7``
-  - Python ``3.2`` / ``3.3``/ ``3.4`` / ``3.5`` / ``3.6``
+  - Python ``3.2`` / ``3.3``/ ``3.4`` / ``3.5`` / ``3.6`` / ``3.7``
 
   - It also works with ``pypy`` and ``pypy3`` (no plotting - ``matplotlib`` is
     not supported under *pypy*)
@@ -158,7 +168,7 @@ Version numbering
 X.Y.Z.I
 
   - X: Major version number. Should stay stable unless something big is changed
-    like an overhaul to use numpy
+    like an overhaul to use ``numpy``
   - Y: Minor version number. To be changed upon adding a complete new feature or
     (god forbids) an incompatible API change.
   - Z: Revision version number. To be changed for documentation updates, small

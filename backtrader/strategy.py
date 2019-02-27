@@ -34,6 +34,7 @@ from .utils.py3 import (filter, keys, integer_types, iteritems, itervalues,
 import backtrader as bt
 from .lineiterator import LineIterator, StrategyBase
 from .lineroot import LineSingle
+from .lineseries import LineSeriesStub
 from .metabase import ItemCollection, findowner
 from .trade import Trade
 from .utils import OrderedDict, AutoOrderedDict, AutoDictList
@@ -166,24 +167,45 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
 
             while True:
                 if id(clk) in dataids:
-                    break
+                    break  # already top-level clock (data feed)
 
-                clk2 = getattr(clk, '._clock', None)
+                # See if the current clock has higher level clocks
+                clk2 = getattr(clk, '_clock', None)
                 if clk2 is None:
-                    clk2 = getattr(clk._owner, '._clock', None)
+                    clk2 = getattr(clk._owner, '_clock', None)
 
-                clk = clk2
-                if clk is None:
-                    break
+                if clk2 is None:
+                    break  # if no clock found, bail out
+
+                clk = clk2  # keep the ref and try to go up the hierarchy
 
             if clk is None:
-                continue
+                continue  # no clock found, go to next
+
+            # LineSeriesStup wraps a line and the clock is the wrapped line and
+            # no the wrapper itself.
+            if isinstance(clk, LineSeriesStub):
+                clk = clk.lines[0]
 
             _dminperiods[clk].append(lineiter._minperiod)
 
         self._minperiods = list()
         for data in self.datas:
-            # dminperiod = max(_dminperiods[data] or [self._minperiod])
+
+            # Do not only consider the data as clock but also its lines which
+            # may have been individually passed as clock references and
+            # discovered as clocks above
+
+            # Initialize with data min period if any
+            dlminperiods = _dminperiods[data]
+
+            for l in data.lines:  # search each line for min periods
+                if l in _dminperiods:
+                    dlminperiods += _dminperiods[l]  # found, add it
+
+            # keep the reference to the line if any was found
+            _dminperiods[data] = [max(dlminperiods)] if dlminperiods else []
+
             dminperiod = max(_dminperiods[data] or [data._minperiod])
             self._minperiods.append(dminperiod)
 
@@ -405,7 +427,8 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
 
         # prepare the indicators/observers data headers
         for iocsv in self.indobscsv:
-            headers.append(iocsv.__class__.__name__)
+            name = iocsv.plotinfo.plotname or iocsv.__class__.__name__
+            headers.append(name)
             headers.append('len')
             headers.extend(iocsv.getlinealiases())
 
@@ -415,7 +438,8 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
         values = list()
 
         for iocsv in self.indobscsv:
-            values.append(iocsv.__class__.__name__)
+            name = iocsv.plotinfo.plotname or iocsv.__class__.__name__
+            values.append(name)
             lio = len(iocsv)
             values.append(lio)
             if lio:
@@ -902,7 +926,7 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
         if isinstance(data, string_types):
             data = self.getdatabyname(data)
 
-        data = data or self.datas[0]
+        data = data if data is not None else self.datas[0]
         size = size if size is not None else self.getsizing(data, isbuy=True)
 
         if size:
@@ -932,7 +956,7 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
         if isinstance(data, string_types):
             data = self.getdatabyname(data)
 
-        data = data or self.datas[0]
+        data = data if data is not None else self.datas[0]
         size = size if size is not None else self.getsizing(data, isbuy=False)
 
         if size:
@@ -1096,10 +1120,19 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
             order. Arguments from the default ``**kwargs`` will be applied on
             top of this.
 
+        High/Low Side orders can be suppressed by using:
+
+          - ``limitexec=None`` to suppress the *high side*
+
+          - ``stopexec=None`` to suppress the *low side*
+
         Returns:
 
           - A list containing the 3 orders [order, stop side, limit side]
 
+          - If high/low orders have been suppressed the return value will still
+            contain 3 orders, but those suppressed will have a value of
+            ``None``
         '''
 
         kargs = dict(size=size,
@@ -1108,28 +1141,34 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
                      trailamount=trailamount, trailpercent=trailpercent)
         kargs.update(oargs)
         kargs.update(kwargs)
-        kargs['transmit'] = False
+        kargs['transmit'] = limitexec is None and stopexec is None
         o = self.buy(**kargs)
 
-        # low side / stop
-        kargs = dict(data=data, price=stopprice, exectype=stopexec,
-                     valid=valid, tradeid=tradeid)
-        kargs.update(stopargs)
-        kargs.update(kwargs)
-        kargs['parent'] = o
-        kargs['transmit'] = False
-        kargs['size'] = o.size
-        ostop = self.sell(**kargs)
+        if stopexec is not None:
+            # low side / stop
+            kargs = dict(data=data, price=stopprice, exectype=stopexec,
+                         valid=valid, tradeid=tradeid)
+            kargs.update(stopargs)
+            kargs.update(kwargs)
+            kargs['parent'] = o
+            kargs['transmit'] = limitexec is None
+            kargs['size'] = o.size
+            ostop = self.sell(**kargs)
+        else:
+            ostop = None
 
-        # high side / limit
-        kargs = dict(data=data, price=limitprice, exectype=limitexec,
-                     valid=valid, tradeid=tradeid)
-        kargs.update(limitargs)
-        kargs.update(kwargs)
-        kargs['parent'] = o
-        kargs['transmit'] = True
-        kargs['size'] = o.size
-        olimit = self.sell(**kargs)
+        if limitexec is not None:
+            # high side / limit
+            kargs = dict(data=data, price=limitprice, exectype=limitexec,
+                         valid=valid, tradeid=tradeid)
+            kargs.update(limitargs)
+            kargs.update(kwargs)
+            kargs['parent'] = o
+            kargs['transmit'] = True
+            kargs['size'] = o.size
+            olimit = self.sell(**kargs)
+        else:
+            olimit = None
 
         return [o, ostop, olimit]
 
@@ -1153,10 +1192,19 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
 
         See ``bracket_buy`` for the meaning of the parameters
 
+        High/Low Side orders can be suppressed by using:
+
+          - ``stopexec=None`` to suppress the *high side*
+
+          - ``limitexec=None`` to suppress the *low side*
+
         Returns:
 
           - A list containing the 3 orders [order, stop side, limit side]
 
+          - If high/low orders have been suppressed the return value will still
+            contain 3 orders, but those suppressed will have a value of
+            ``None``
         '''
 
         kargs = dict(size=size,
@@ -1165,28 +1213,34 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
                      trailamount=trailamount, trailpercent=trailpercent)
         kargs.update(oargs)
         kargs.update(kwargs)
-        kargs['transmit'] = False
+        kargs['transmit'] = limitexec is None and stopexec is None
         o = self.sell(**kargs)
 
-        # high side / limit
-        kargs = dict(data=data, price=stopprice, exectype=stopexec,
-                     valid=valid, tradeid=tradeid)
-        kargs.update(stopargs)
-        kargs.update(kwargs)
-        kargs['parent'] = o
-        kargs['transmit'] = False
-        kargs['size'] = o.size
-        ostop = self.buy(**kargs)
+        if stopexec is not None:
+            # high side / stop
+            kargs = dict(data=data, price=stopprice, exectype=stopexec,
+                         valid=valid, tradeid=tradeid)
+            kargs.update(stopargs)
+            kargs.update(kwargs)
+            kargs['parent'] = o
+            kargs['transmit'] = limitexec is None  # transmit if last
+            kargs['size'] = o.size
+            ostop = self.buy(**kargs)
+        else:
+            ostop = None
 
-        # low side / stop
-        kargs = dict(data=data, price=limitprice, exectype=limitexec,
-                     valid=valid, tradeid=tradeid)
-        kargs.update(limitargs)
-        kargs.update(kwargs)
-        kargs['parent'] = o
-        kargs['transmit'] = True
-        kargs['size'] = o.size
-        olimit = self.buy(**kargs)
+        if limitexec is not None:
+            # low side / limit
+            kargs = dict(data=data, price=limitprice, exectype=limitexec,
+                         valid=valid, tradeid=tradeid)
+            kargs.update(limitargs)
+            kargs.update(kwargs)
+            kargs['parent'] = o
+            kargs['transmit'] = True
+            kargs['size'] = o.size
+            olimit = self.buy(**kargs)
+        else:
+            olimit = None
 
         return [o, ostop, olimit]
 
@@ -1329,7 +1383,7 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
 
         A property ``position`` is also available
         '''
-        data = data or self.datas[0]
+        data = data if data is not None else self.datas[0]
         broker = broker or self.broker
         return broker.getposition(data)
 
@@ -1411,7 +1465,7 @@ class Strategy(with_metaclass(MetaStrategy, StrategyBase)):
         Return the stake calculated by the sizer instance for the current
         situation
         '''
-        data = data or self.datas[0]
+        data = data if data is not None else self.datas[0]
         return self._sizer.getsizing(data, isbuy=isbuy)
 
 
