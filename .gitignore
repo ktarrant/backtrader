@@ -67,3 +67,6 @@ samples2/
 
 # Ignore test files in Datas
 datas/*.py
+
+# Ignore workspace venv
+venv/
