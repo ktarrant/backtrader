@@ -88,3 +88,12 @@ from .ichimoku import *
 from .hurst import *
 from .ols import *
 from .hadelta import *
+
+
+
+from .priceaction import *
+from .supertrend import *
+from .tdcount import *
+
+# Depends on priceaction, supertrend
+from .adbreakout import *
