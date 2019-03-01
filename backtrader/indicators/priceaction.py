@@ -1,7 +1,7 @@
 import numpy as np
 
-from indicator import Indicator
-from indicators import If, And, Min, Max
+from backtrader.indicator import Indicator
+from backtrader.indicators import If, And, Min, Max
 
 
 class WickReversalSignal(Indicator):
