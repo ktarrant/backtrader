@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from indicator import Indicator
-from indicators import If, Supertrend, WickReversalSignal
+from backtrader.indicator import Indicator
+from backtrader.indicators import If, Supertrend, WickReversalSignal
 
 
 class ADBreakout(Indicator):
