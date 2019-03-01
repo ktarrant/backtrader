@@ -1,7 +1,7 @@
 import numpy as np
 
-from indicator import Indicator
-from indicators import AverageTrueRange, Highest, Lowest
+from backtrader.indicator import Indicator
+from backtrader.indicators import AverageTrueRange, Highest, Lowest
 
 
 class Supertrend(Indicator):
