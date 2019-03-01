@@ -1,9 +1,13 @@
-from indicator import Indicator
+from backtrader.indicator import Indicator
 
 
 class TDSequential(Indicator):
 
     nickname = "td"
+
+    params = (
+        ("period", 4),
+    )
 
     lines = (
         "value",
@@ -20,10 +24,13 @@ class TDSequential(Indicator):
         reversal=dict(_method='bar', alpha=1.00, width=1.0),
     )
 
+    def __init__(self):
+        self.addminperiod(self.params.period)
+
     def td_base(self, bar):
-        up = 1 if (self.data.close[-bar] > self.data.close[-bar-4]) else 0
-        dn = -1 if (self.data.close[-bar] < self.data.close[-bar-4]) else 0
-        return up + dn
+        cbar = self.data.close[-bar]
+        pbar = self.data.close[-bar-self.p.period]
+        return 1 if cbar > pbar else (-1 if cbar < pbar else 0)
 
     def ta_base(self, bar):
         up = 1.0 if (self.td_base(bar) == 1.0 and (
