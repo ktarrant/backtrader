@@ -65,6 +65,26 @@ class LatestBar(bt.Analyzer):
             if prev:
                 yield ("prev_" + field_name, line[-1])
 
+    @staticmethod
+    def nickname(typename):
+        return "".join([c for c in typename if c.upper() == c]).lower()
+
     def next(self):
         for fn, fv in LatestBar.yield_latest_bar(self.data0, self.p.prev):
             self.rets[fn] = fv
+
+        for li_i in self.strategy._lineiterators:
+            for obj in self.strategy._lineiterators[li_i]:
+                obj_name = LatestBar.nickname(type(obj).__name__)
+                for field_name in obj.lines.getlinealiases():
+                    full_name = "_".join([obj_name, field_name])
+                    line = getattr(obj.lines, field_name)
+                    try:
+                        self.rets[full_name] = line[0]
+                    except IndexError:
+                        pass
+                    prev_name = "prev_" + full_name
+                    try:
+                        self.rets[prev_name] = line[-1]
+                    except IndexError:
+                        pass

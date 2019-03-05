@@ -24,6 +24,8 @@ from __future__ import (absolute_import, division, print_function,
 import datetime
 import time
 
+import numpy as np
+
 import testcommon
 
 import backtrader as bt
@@ -180,6 +182,24 @@ def test_run(main=False):
                 assert analysis['prev_volume'] == 0.0
                 assert analysis['openinterest'] == 0.0
                 assert analysis['prev_openinterest'] == 0.0
+
+                assert analysis['sma_sma'] == 4095.012
+                assert analysis['prev_sma_sma'] == 4087.17
+                assert analysis['co_crossover'] == 0.0
+                assert analysis['prev_co_crossover'] == 0.0
+                # do not validate broker, we get diff results
+                # assert analysis['b_cash'] == 11902.199999999986
+                # assert analysis['prev_b_cash'] == 11944.199999999984
+                # assert analysis['b_value'] == 12902.199999999986
+                # assert analysis['prev_b_value'] == 12944.199999999984
+                assert np.isnan(analysis['bs_buy'])
+                assert np.isnan(analysis['prev_bs_buy'])
+                assert np.isnan(analysis['bs_sell'])
+                assert np.isnan(analysis['prev_bs_sell'])
+                assert np.isnan(analysis['t_pnlplus'])
+                assert np.isnan(analysis['prev_t_pnlplus'])
+                assert np.isnan(analysis['t_pnlminus'])
+                assert np.isnan(analysis['prev_t_pnlminus'])
 
 if __name__ == '__main__':
     test_run(main=True)
