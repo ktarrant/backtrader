@@ -52,3 +52,8 @@ from .vchartfile import VChartFile
 
 from .rollover import RollOver
 from .chainer import Chainer
+
+try:
+    from .iex import IexData
+except ImportError:
+    pass  # The user may not have something installed
