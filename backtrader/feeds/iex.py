@@ -72,7 +72,7 @@ class IexData(DataBase):
 
     params = (
         ("cache", False), # if True, data will be cached/reused in local storage
-        ("cache_format", "cache/{today}-{symbol}-{lookback}.csv"),
+        ("cache_format", "cache/{today}-{symbol}-{lookback}.pickle"),
     )
 
     # lines = (
