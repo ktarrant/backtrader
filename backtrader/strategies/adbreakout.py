@@ -1,11 +1,8 @@
 import numpy as np
 
-from basket import BasketStrategy
-from drivers import BreakoutDriver
-from indicators import ADBreakout, TDSequential
+import backtrader as bt
 
-
-class ADBreakoutStrategy(BasketStrategy):
+class ADBreakoutStrategy(bt.Strategy):
     """
     Strategy which seeks to jump on a breakout away from a support/resistance
     level. The goal of the strategy is to jump on a strong move and then take
@@ -20,57 +17,50 @@ class ADBreakoutStrategy(BasketStrategy):
         ("max_entry_td", -1),
     )
 
+    lines = (
+        "entry_signal",
+        "protect_price",
+        "close_signal",
+    )
+
+
     def __init__(self):
         super(ADBreakoutStrategy, self).__init__()
 
-        self.breakout = ADBreakout()
-        self.td = TDSequential()
+        self.breakout = bt.indicators.ADBreakout()
+        self.td = bt.indicators.TDSequential()
+        self.driver = bt.drivers.BreakoutDriver(self)
 
-        self.driver = BreakoutDriver(self)
+        self.lines.protect_price = self.breakout.lines.stop
+        self.lines.close_signal = self.td.lines.reversal
 
-    def next(self):
-        self.driver.next()
+    def update_breakout(self):
+        breakout = self.breakout.lines.breakout[0]
+        td_count = self.td.value[0]
 
-    def notify_order(self, order):
-        self.driver.notify_order(order)
-
-    @property
-    def entry_signal(self):
-        try:
-            breakout = self.breakout.lines.breakout[0]
-            td_count = self.td.count[0]
-        except IndexError:
-            return 0
         if self.p.max_entry_td < 0:
             # a negative setting means we don't filter entry at all using TD
-            return breakout
+            self.lines.entry_signal[0] = breakout
         elif self.p.max_entry_td == 0:
             # a setting of zero means we simply require the td count to have the
             # same sign as the breakout
             if td_count > 0 and breakout > 0:
-                return breakout
+                self.lines.entry_signal[0] = breakout
             elif td_count < 0 and breakout < 0:
-                return breakout
+                self.lines.entry_signal[0] = breakout
             else:
-                return 0
+                self.lines.entry_signal[0] = 0
         else:
             if 0 < td_count <= self.p.max_entry_td and breakout > 0:
-                return breakout
+                self.lines.entry_signal[0] = breakout
             elif 0 > td_count >= -self.p.max_entry_td and breakout < 0:
-                return breakout
+                self.lines.entry_signal[0] = breakout
             else:
-                return 0
+                self.lines.entry_signal[0] = 0
 
-    @property
-    def protect_price(self):
-        try:
-            return self.breakout.lines.stop[0]
-        except IndexError:
-            return np.NaN
+    def next(self):
+        self.update_breakout()
+        self.driver.next()
 
-    @property
-    def close_signal(self):
-        try:
-            return self.td.lines.reversal[0]
-        except IndexError:
-            return 0
+    def notify_order(self, order):
+        self.driver.notify_order(order)

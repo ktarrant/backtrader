@@ -10,6 +10,7 @@ import requests
 
 from backtrader.feed import DataBase
 from backtrader import TimeFrame
+from backtrader.utils import date2num
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class IexData(DataBase):
 
     params = (
         ("cache", False), # if True, data will be cached/reused in local storage
-        ("cache_format", "collections/{today}-{symbol}-{lookback}.csv"),
+        ("cache_format", "cache/{today}-{symbol}-{lookback}.csv"),
     )
 
     # lines = (
@@ -161,15 +162,35 @@ class IexData(DataBase):
                                                      lookback=self.lookback)
 
         for column in self.table.columns:
-            getattr(self.lines, column)[0] = self.table[column].iloc[self.index]
+            if column == "date":
+                label = "datetime"
+                value = date2num(self.table[column].iloc[self.index])
+            else:
+                label = column
+                value = self.table[column].iloc[self.index]
+
+            try:
+                line = getattr(self.lines, label)
+            except AttributeError:
+                continue # don't worry about lines that are not used
+
+            line[0] = value
 
         self.index += 1
 
+        if self.index == len(self.table.index):
+            return False
+        else:
+            return True
+
     def stop(self):
+        if self.cache_fobj:
+            self.cache_fobj.close()
+
         if self.p.cache:
             cdir, cfile = os.path.split(self.cache_fn)
             logger.info("Caching data to path: {}".format(self.cache_fn))
             os.makedirs(cdir, exist_ok=True)
             with open(self.cache_fn, "wb") as fobj:
-                pickle.dump(fobj)
+                pickle.dump(self.table, fobj)
 

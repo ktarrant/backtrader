@@ -2,11 +2,13 @@ from collections import OrderedDict
 import argparse
 import datetime
 import pickle
+from multiprocessing import Pool
 
 import pandas as pd
 import backtrader as bt
 
 from .tickers import dji_components, default_faves, load_sp500_weights
+# from tools.iexdownload import load_earnings, load_dividends
 
 # TODO: Populate this with callables that return a set of tickers
 GROUP_CHOICES = OrderedDict([
@@ -24,12 +26,12 @@ def yield_summary(strategy):
         od.update(analyzer.get_analysis())
     return od
 
-def run_backtest(table, strategy):
+def run_backtest(symbol, strategy):
     """
     Runs strategy against historical data
 
     Args:
-        table (pd.DataFrame): table of historical data to backtest
+        symbol (str): name of the symbol to backtest
         strategy (Strategy): strategy to use in backtest
 
     Returns:
@@ -42,7 +44,7 @@ def run_backtest(table, strategy):
     cerebro.addstrategy(strategy)
 
     # Set up the data source
-    data = bt.feeds.PandasData(dataname=table.set_index("date"))
+    data = bt.feeds.IexData(dataname=symbol, cache=True)
     cerebro.adddata(data)
 
     # Add analyzers
@@ -53,6 +55,34 @@ def run_backtest(table, strategy):
 
     result_strategy = result[0]
     return pd.Series(yield_summary(result_strategy))
+
+
+def get_row_func(strategy, add_events=False):
+
+    def _create_row(symbol):
+        row_chunks = [run_backtest(symbol, strategy)]
+        # if add_events:
+        #     dividend_history = load_dividends(symbol)
+        #     if dividend_history is not None:
+        #         row_chunks += [make_dividend_summary(dividend_history)]
+        #     earnings_history = load_earnings(symbol)
+        #     if earnings_history is not None:
+        #         row_chunks += [make_earnings_summary(earnings_history)]
+        combined = pd.concat(row_chunks)
+        return combined
+
+    return _create_row
+
+def run_collection(symbols, pool_size=0):
+    row_func = get_row_func(bt.strategies.ADBreakoutStrategy)
+    if pool_size > 1:
+        p = Pool(pool_size)
+        table = pd.DataFrame(p.map(row_func, symbols), index=symbols)
+        return table
+    else:
+        values = [row_func(symbol) for symbol in symbols]
+        table = pd.DataFrame(values, index=symbols)
+        return table
 
 def parse_args():
     parser = argparse.ArgumentParser(description="""
@@ -84,11 +114,6 @@ def parse_args():
     args.pool_size = args.pool_size if args.pool_size > 0 else 0
 
     return args
-
-def run_collection(symbols):
-
-    return pd.DataFrame()
-
 
 if __name__ == "__main__":
     args = parse_args()

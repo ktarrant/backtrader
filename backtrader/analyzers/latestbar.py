@@ -76,6 +76,8 @@ class LatestBar(bt.Analyzer):
         for li_i in self.strategy._lineiterators:
             for obj in self.strategy._lineiterators[li_i]:
                 obj_name = LatestBar.nickname(type(obj).__name__)
+                if obj_name.startswith("_"):
+                    continue
                 for field_name in obj.lines.getlinealiases():
                     full_name = "_".join([obj_name, field_name])
                     line = getattr(obj.lines, field_name)

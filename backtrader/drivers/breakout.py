@@ -1,7 +1,6 @@
 from transitions import Machine
 
-from order import Order
-
+import backtrader as bt
 
 class BreakoutDriver(object):
     states = [
@@ -92,12 +91,12 @@ class BreakoutDriver(object):
 
     # entry order handlers
     def is_entry_signal(self, _):
-        return self.strategy.entry_signal != 0
+        return self.strategy.lines.entry_signal[0] != 0
 
     def send_entry_order(self, _):
-        if self.strategy.entry_signal > 0:
+        if self.strategy.lines.entry_signal[0] > 0:
             self.entry_order = self.strategy.buy()
-        elif self.strategy.entry_signal < 0:
+        elif self.strategy.lines.entry_signal[0] < 0:
             self.entry_order = self.strategy.sell()
 
     def cancel_entry_order(self, _):
@@ -106,21 +105,21 @@ class BreakoutDriver(object):
     def is_entry_order_completed(self, event):
         return self.check_order_status(event,
                                        self.entry_order,
-                                       Order.Completed)
+                                       bt.Order.Completed)
 
     def is_entry_order_cancelled(self, event):
         return self.check_order_status(event,
                                        self.entry_order,
-                                       Order.Cancelled)
+                                       bt.Order.Cancelled)
 
     # protect order handlers
     def send_protect_order(self, _):
         if self.strategy.position.size > 0:
             self.protect_order = self.strategy.sell(
-                exectype=Order.Stop, price=self.strategy.protect_price)
+                exectype=bt.Order.Stop, price=self.strategy.protect_price)
         elif self.strategy.position.size < 0:
             self.protect_order = self.strategy.buy(
-                exectype=Order.Stop, price=self.strategy.protect_price)
+                exectype=bt.Order.Stop, price=self.strategy.protect_price)
 
     def cancel_protect_order(self, _):
         self.strategy.cancel(self.protect_order)
@@ -128,21 +127,21 @@ class BreakoutDriver(object):
     def is_protect_order_completed(self, event):
         return self.check_order_status(event,
                                        self.protect_order,
-                                       Order.Completed)
+                                       bt.Order.Completed)
 
     def is_protect_order_cancelled(self, event):
         return self.check_order_status(event,
                                        self.protect_order,
-                                       Order.Cancelled)
+                                       bt.Order.Cancelled)
 
     def is_protect_order_accepted(self, event):
         return self.check_order_status(event,
                                        self.protect_order,
-                                       Order.Accepted)
+                                       bt.Order.Accepted)
 
     def is_protect_price_changed(self, _):
         if self.protect_order:
-            if self.protect_order.price == self.strategy.protect_price:
+            if self.protect_order.price == self.strategy.lines.protect_price[0]:
                 return False
             else:
                 return True
@@ -151,7 +150,7 @@ class BreakoutDriver(object):
 
     # close order handlers
     def is_close_signal(self, _):
-        return self.strategy.close_signal != 0
+        return self.strategy.lines.close_signal[0] != 0
 
     def send_close_order(self, _):
         self.close_order = self.strategy.close()
@@ -159,4 +158,4 @@ class BreakoutDriver(object):
     def is_close_order_completed(self, event):
         return self.check_order_status(event,
                                        self.close_order,
-                                       Order.Completed)
+                                       bt.Order.Completed)
