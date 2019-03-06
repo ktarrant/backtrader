@@ -25,14 +25,17 @@ class ADBreakoutStrategy(bt.Strategy):
 
 
     def __init__(self):
-        super(ADBreakoutStrategy, self).__init__()
-
-        self.breakout = bt.indicators.ADBreakout()
+        self.st = bt.indicators.Supertrend()
+        self.wick = bt.indicators.WickReversalSignal()
+        self.breakout = bt.indicators.ADBreakout(self.data,
+                                                 self.st.lines.trend,
+                                                 self.wick.lines.wick)
         self.td = bt.indicators.TDSequential()
-        self.driver = bt.drivers.BreakoutDriver(self)
 
-        self.lines.protect_price = self.breakout.lines.stop
+        self.lines.protect_price = self.st.lines.stop
         self.lines.close_signal = self.td.lines.reversal
+
+        self.driver = bt.drivers.BreakoutDriver(self)
 
     def update_breakout(self):
         breakout = self.breakout.lines.breakout[0]

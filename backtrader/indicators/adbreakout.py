@@ -6,18 +6,12 @@ from backtrader.indicators import If, Supertrend, WickReversalSignal
 
 
 class ADBreakout(Indicator):
-
-    nickname = "stad"
-
-    params = (
-        ("trend_src", Supertrend),
-        ("ad_src", WickReversalSignal),
-    )
+    # data - OHLC
+    # data1 - trend - lines.trend
+    # data2 - wick - lines.wick
+    _mindatas = 3
 
     lines = (
-        "trend",
-        "stop",
-        "ad",
         "resistance",
         "support",
         "breakout",
@@ -30,22 +24,13 @@ class ADBreakout(Indicator):
         Creates a breakout alert indicator using trend and wick source
         indicators
         """
-        self.trendSrc = self.p.trend_src(self.data)
-        self.adSrc = self.p.ad_src(self.data)
-        self.distribution = If(
-            self.trendSrc.lines.trend > 0, self.adSrc.lines.wick < 0, np.NaN)
-        self.accumulation = If(
-            self.trendSrc.lines.trend < 0, self.adSrc.lines.wick > 0, np.NaN)
-
-        # pass thru the relevant lines from the sources
-        self.lines.trend = self.trendSrc.lines.trend
-        self.lines.stop = self.trendSrc.lines.stop
-        self.lines.ad = self.adSrc.lines.wick
+        self.trend = self.data1
+        self.ad = self.data2
+        self.distribution = If(self.trend > 0, self.ad < 0, np.NaN)
+        self.accumulation = If(self.trend < 0, self.ad > 0, np.NaN)
 
     def next(self):
-        if self.trendSrc.lines.trend[0] > 0:
-            self.lines.support[0] = self.trendSrc.lines.stop[0]
-
+        if self.trend[0] > 0:
             if not pd.isnull(self.distribution[0]):
                 if pd.isnull(self.lines.resistance[-1]):
                     self.lines.resistance[0] = self.data.high[0]
@@ -53,16 +38,14 @@ class ADBreakout(Indicator):
                     self.lines.resistance[0] = max(
                         self.data.high[0], self.lines.resistance[-1])
 
-            elif self.trendSrc.lines.trend[-1] <= 0:
+            elif self.trend[-1] <= 0:
                 # we just flipped trends, we don't know resistance yet
                 self.lines.resistance[0] = np.NaN
 
             else:
                 self.lines.resistance[0] = self.lines.resistance[-1]
 
-        elif self.trendSrc.lines.trend[0] < 0:
-            self.lines.resistance[0] = self.trendSrc.lines.stop[0]
-
+        elif self.trend[0] < 0:
             if not pd.isnull(self.accumulation[0]):
                 if pd.isnull(self.lines.support[-1]):
                     self.lines.support[0] = self.data.low[0]
@@ -70,7 +53,7 @@ class ADBreakout(Indicator):
                     self.lines.support[0] = min(
                         self.data.low[0], self.lines.support[-1])
 
-            elif self.trendSrc.lines.trend[-1] >= 0:
+            elif self.trend[-1] >= 0:
                 # we just flipped trends, we don't know resistance yet
                 self.lines.support[0] = np.NaN
 
