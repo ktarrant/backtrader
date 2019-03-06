@@ -26,7 +26,7 @@ def parse_date(s):
         return pd.NaT
 
 
-def parse_numeric(s, how=pd.to_numeric):
+def parse_numeric(s):
     """
     Try to parse a numeric string
     :param s: a string that looks like a number
@@ -34,9 +34,12 @@ def parse_numeric(s, how=pd.to_numeric):
     :return: the parsed number or NaN if we fail
     """
     try:
-        return how(s)
+        return int(s)
     except ValueError:
-        return np.NaN
+        try:
+            return float(s)
+        except ValueError:
+            return np.NaN
 
 class IexData(DataBase):
     URL_CHART = "https://api.iextrading.com/1.0/stock/{symbol}/chart/{range}"
