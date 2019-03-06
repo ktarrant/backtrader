@@ -54,7 +54,7 @@ class ADBreakout(Indicator):
                         self.data.low[0], self.lines.support[-1])
 
             elif self.trend[-1] >= 0:
-                # we just flipped trends, we don't know resistance yet
+                # we just flipped trends, we don't know support yet
                 self.lines.support[0] = np.NaN
 
             else:
