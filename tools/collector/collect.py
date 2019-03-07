@@ -9,9 +9,7 @@ import pandas as pd
 import backtrader as bt
 
 from .tickers import dji_components, default_faves, load_sp500_weights
-# from tools.iexdownload import load_earnings, load_dividends
 
-# TODO: Populate this with callables that return a set of tickers
 GROUP_CHOICES = OrderedDict([
     ("faves", lambda: default_faves),
     ("dji", lambda: dji_components),
