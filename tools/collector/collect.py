@@ -90,13 +90,11 @@ def parse_args():
     parser.add_argument("--group", "-g",
                         action="append",
                         choices=list(GROUP_CHOICES.keys()),
-                        help="""Add a group of symbols from an preset index
-                        choices: {}""".format(list(GROUP_CHOICES.keys())))
+                        help="Add a group of symbols from n preset index")
     parser.add_argument("--analysis", "-a",
                         action="append",
                         choices=list(ANALYSIS_CHOICES.keys()),
-                        help="""Add an analyzer which will be included in table
-                        choices: {}""".format(list(ANALYSIS_CHOICES.keys())))
+                        help="Add an analyzer which will be included in table")
     parser.add_argument("--pool-size", "-p",
                         default=0,
                         type=int,
