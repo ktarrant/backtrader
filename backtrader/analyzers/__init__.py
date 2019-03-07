@@ -42,4 +42,5 @@ from .logreturnsrolling import *
 from .calmar import *
 from .periodstats import *
 
-from .latestbar import *
+from .latestbar import LatestBar
+from .iex_events import IexEvents

@@ -20,56 +20,51 @@ GROUP_CHOICES = OrderedDict([
 DEFAULT_OUTPUT = "{today}_{group_label}_collection.{ext}"
 MAX_GROUP_LABEL_LEN = 16
 
+DEFAULT_ANALYZERS = [
+    bt.analyzers.LatestBar,
+    bt.analyzers.IexEvents,
+]
+
 def yield_summary(strategy):
     od = OrderedDict()
     for analyzer in strategy.analyzers:
         od.update(analyzer.get_analysis())
     return od
 
-def run_backtest(symbol, strategy):
-    """
-    Runs strategy against historical data
 
-    Args:
-        symbol (str): name of the symbol to backtest
-        strategy (Strategy): strategy to use in backtest
-
-    Returns:
-        pd.Series: the result of Basket.yield_summary
-    """
-
-    cerebro = bt.Cerebro()
-
-    # Add an indicator that we can extract afterwards
-    cerebro.addstrategy(strategy)
-
-    # Set up the data source
-    data = bt.feeds.IexData(dataname=symbol, cache=True)
-    cerebro.adddata(data)
-
-    # Add analyzers
-    cerebro.addanalyzer(bt.analyzers.LatestBar)
-
-    # Run over everything
-    result = cerebro.run()
-
-    result_strategy = result[0]
-    return pd.Series(yield_summary(result_strategy))
-
-
-def get_row_func(strategy, add_events=False):
+def get_row_func(strategy, analyzers=DEFAULT_ANALYZERS):
 
     def _create_row(symbol):
-        row_chunks = [run_backtest(symbol, strategy)]
-        # if add_events:
-        #     dividend_history = load_dividends(symbol)
-        #     if dividend_history is not None:
-        #         row_chunks += [make_dividend_summary(dividend_history)]
-        #     earnings_history = load_earnings(symbol)
-        #     if earnings_history is not None:
-        #         row_chunks += [make_earnings_summary(earnings_history)]
-        combined = pd.concat(row_chunks)
-        return combined
+        """
+        Runs strategy against historical data and collect the results of all
+        analyzers into a data row to be added to a summary table
+
+        Args:
+            symbol (str): name of the symbol to backtest
+            strategy (Strategy): strategy to use in backtest
+
+        Returns:
+            pd.Series: the result of yield_summary
+        """
+        cerebro = bt.Cerebro()
+
+        # Add an indicator that we can extract afterwards
+        cerebro.addstrategy(strategy)
+
+        # Set up the data source
+        data = bt.feeds.IexData(dataname=symbol, cache=True)
+        cerebro.adddata(data)
+
+        # Add analyzers
+        for analyzer in analyzers:
+            cerebro.addanalyzer(analyzer)
+
+        # Run over everything
+        result = cerebro.run()
+
+        result_strategy = result[0]
+
+        return pd.Series(yield_summary(result_strategy))
 
     return _create_row
 
