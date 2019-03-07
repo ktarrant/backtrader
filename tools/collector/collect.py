@@ -2,6 +2,7 @@ from collections import OrderedDict
 import argparse
 import datetime
 import pickle
+import os
 from multiprocessing import Pool
 
 import pandas as pd
@@ -17,7 +18,7 @@ GROUP_CHOICES = OrderedDict([
     ("sp500", lambda: list(load_sp500_weights().index)),
 ])
 
-DEFAULT_OUTPUT = "{today}_{group_label}_collection.{ext}"
+DEFAULT_OUTPUT = "collections/{today}_{group_label}_collection.{ext}"
 MAX_GROUP_LABEL_LEN = 16
 
 ANALYSIS_CHOICES = OrderedDict([
@@ -149,6 +150,10 @@ if __name__ == "__main__":
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
         print(table)
+
+    # make sure collections dir exists
+    collections_dir, output_format = os.path.split(args.output)
+    os.makedirs(collections_dir, exist_ok=True)
 
     if args.csv:
         csv_fn = args.output.format(ext="csv", **vars(args))
