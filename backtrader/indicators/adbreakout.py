@@ -12,8 +12,7 @@ class ADBreakout(Indicator):
     _mindatas = 3
 
     lines = (
-        "resistance",
-        "support",
+        "level",
         "breakout",
     )
 
@@ -26,45 +25,42 @@ class ADBreakout(Indicator):
         """
         self.trend = self.data1
         self.ad = self.data2
-        self.distribution = If(self.trend > 0, self.ad < 0, np.NaN)
-        self.accumulation = If(self.trend < 0, self.ad > 0, np.NaN)
 
     def next(self):
         if self.trend[0] > 0:
-            if not pd.isnull(self.distribution[0]):
-                if pd.isnull(self.lines.resistance[-1]):
-                    self.lines.resistance[0] = self.data.high[0]
+            if self.ad[0] >= self.data.high[0]:
+                if pd.isnull(self.lines.level[-1]):
+                    self.lines.level[0] = self.ad[0]
                 else:
-                    self.lines.resistance[0] = max(
-                        self.data.high[0], self.lines.resistance[-1])
+                    self.lines.level[0] = max(self.ad[0], self.lines.level[-1])
 
             elif self.trend[-1] <= 0:
                 # we just flipped trends, we don't know resistance yet
-                self.lines.resistance[0] = np.NaN
+                self.lines.level[0] = np.NaN
 
             else:
-                self.lines.resistance[0] = self.lines.resistance[-1]
+                self.lines.level[0] = self.lines.level[-1]
+
+            was_below_resistance = self.data0.close[-1] < self.lines.level[-1]
+            is_above_resistance = self.data0.close[0] > self.lines.level[-1]
+            self.lines.breakout[0] = 1 if (
+                    was_below_resistance and is_above_resistance) else 0
 
         elif self.trend[0] < 0:
-            if not pd.isnull(self.accumulation[0]):
-                if pd.isnull(self.lines.support[-1]):
-                    self.lines.support[0] = self.data.low[0]
+            if self.ad[0] <= self.data.low[0]:
+                if pd.isnull(self.lines.level[-1]):
+                    self.lines.level[0] = self.ad[0]
                 else:
-                    self.lines.support[0] = min(
-                        self.data.low[0], self.lines.support[-1])
+                    self.lines.level[0] = min(self.ad[0], self.lines.level[-1])
 
             elif self.trend[-1] >= 0:
                 # we just flipped trends, we don't know support yet
-                self.lines.support[0] = np.NaN
+                self.lines.level[0] = np.NaN
 
             else:
-                self.lines.support[0] = self.lines.support[-1]
+                self.lines.level[0] = self.lines.level[-1]
 
-        was_below_resistance = self.data0.close[-1] < self.lines.resistance[-1]
-        was_above_support = self.data0.close[-1] > self.lines.support[-1]
-        is_above_resistance = self.data0.close[0] > self.lines.resistance[-1]
-        is_below_support = self.data0.close[0] < self.lines.support[-1]
-        was_in_zone = was_below_resistance and was_above_support
-        is_long = is_above_resistance and was_in_zone
-        is_short = is_below_support and was_in_zone
-        self.lines.breakout[0] = 1 if is_long else (-1 if is_short else 0)
+            was_above_support = self.data0.close[-1] > self.lines.level[-1]
+            is_below_support = self.data0.close[0] < self.lines.level[-1]
+            self.lines.breakout[0] = 1 if (
+                    was_above_support and is_below_support) else 0

@@ -26,7 +26,7 @@ ANALYSIS_CHOICES = OrderedDict([
     ("events", bt.analyzers.IexEvents),
 ])
 
-def get_row_func(strategy, analyzers):
+def get_row_func(strategy, analyzers, plot=False):
 
     strategy_label = strategy.__name__
 
@@ -59,6 +59,9 @@ def get_row_func(strategy, analyzers):
         result_list = cerebro.run()
         result = result_list[0]
 
+        if plot:
+            cerebro.plot()
+
         row = pd.Series()
         row["symbol"] = symbol
         row["strategy"] = strategy_label
@@ -69,9 +72,9 @@ def get_row_func(strategy, analyzers):
 
     return _create_row
 
-def run_collection(symbols, strategy, analyzers, pool_size=0):
+def run_collection(symbols, strategy, analyzers, pool_size=0, plot=False):
     # TODO: Support multiple strategies
-    row_func = get_row_func(strategy, analyzers)
+    row_func = get_row_func(strategy, analyzers, plot=plot)
     if pool_size > 1:
         p = Pool(pool_size)
         table = pd.DataFrame(p.map(row_func, symbols))
@@ -109,10 +112,16 @@ def parse_args():
     parser.add_argument("--bin", "-b",
                         action="store_true",
                         help="Generate pickled binary output")
-
+    parser.add_argument("--plot",
+                        action="store_true",
+                        help="""Plot backtests in GUI.
+                        Disabled with pool-size>1 to avoid stressing system""")
     args = parser.parse_args()
     args.today = datetime.date.today()
     args.pool_size = args.pool_size if args.pool_size > 0 else 0
+
+    if args.pool_size > 1 and args.plot:
+        raise Exception("Cannot use --pool-size > 1 with the --plot option")
 
     return args
 
@@ -145,7 +154,8 @@ if __name__ == "__main__":
     # TODO: Make the strategy choice configurable
     table = run_collection(symbols,
                            strategy=bt.strategies.ADBreakoutStrategy,
-                           analyzers=analyzers)
+                           analyzers=analyzers,
+                           plot=args.plot)
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
