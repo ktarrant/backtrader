@@ -20,19 +20,14 @@ GROUP_CHOICES = OrderedDict([
 DEFAULT_OUTPUT = "{today}_{group_label}_collection.{ext}"
 MAX_GROUP_LABEL_LEN = 16
 
-DEFAULT_ANALYZERS = [
-    bt.analyzers.LatestBar,
-    bt.analyzers.IexEvents,
-]
+ANALYSIS_CHOICES = OrderedDict([
+    ("latestbar", bt.analyzers.LatestBar),
+    ("events", bt.analyzers.IexEvents),
+])
 
-def yield_summary(strategy):
-    od = OrderedDict()
-    for analyzer in strategy.analyzers:
-        od.update(analyzer.get_analysis())
-    return od
+def get_row_func(strategy, analyzers):
 
-
-def get_row_func(strategy, analyzers=DEFAULT_ANALYZERS):
+    strategy_label = strategy.__name__
 
     def _create_row(symbol):
         """
@@ -60,23 +55,29 @@ def get_row_func(strategy, analyzers=DEFAULT_ANALYZERS):
             cerebro.addanalyzer(analyzer)
 
         # Run over everything
-        result = cerebro.run()
+        result_list = cerebro.run()
+        result = result_list[0]
 
-        result_strategy = result[0]
-
-        return pd.Series(yield_summary(result_strategy))
+        row = pd.Series()
+        row["symbol"] = symbol
+        row["strategy"] = strategy_label
+        for analyzer in result.analyzers:
+            analysis = pd.Series(analyzer.get_analysis())
+            row = row.append(analysis)
+        return row
 
     return _create_row
 
-def run_collection(symbols, pool_size=0):
-    row_func = get_row_func(bt.strategies.ADBreakoutStrategy)
+def run_collection(symbols, strategy, analyzers, pool_size=0):
+    # TODO: Support multiple strategies
+    row_func = get_row_func(strategy, analyzers)
     if pool_size > 1:
         p = Pool(pool_size)
-        table = pd.DataFrame(p.map(row_func, symbols), index=symbols)
+        table = pd.DataFrame(p.map(row_func, symbols))
         return table
     else:
         values = [row_func(symbol) for symbol in symbols]
-        table = pd.DataFrame(values, index=symbols)
+        table = pd.DataFrame(values)
         return table
 
 def parse_args():
@@ -89,7 +90,13 @@ def parse_args():
     parser.add_argument("--group", "-g",
                         action="append",
                         choices=list(GROUP_CHOICES.keys()),
-                        help="Add a group of symbols from an preset index")
+                        help="""Add a group of symbols from an preset index
+                        choices: {}""".format(list(GROUP_CHOICES.keys())))
+    parser.add_argument("--analysis", "-a",
+                        action="append",
+                        choices=list(ANALYSIS_CHOICES.keys()),
+                        help="""Add an analyzer which will be included in table
+                        choices: {}""".format(list(ANALYSIS_CHOICES.keys())))
     parser.add_argument("--pool-size", "-p",
                         default=0,
                         type=int,
@@ -131,7 +138,15 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError("User must provide either group or symbol!")
 
-    table = run_collection(symbols)
+    if args.analysis is None:
+        analyzers = []
+    else:
+        analyzers = [ANALYSIS_CHOICES[name] for name in args.analysis]
+
+    # TODO: Make the strategy choice configurable
+    table = run_collection(symbols,
+                           strategy=bt.strategies.ADBreakoutStrategy,
+                           analyzers=analyzers)
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
