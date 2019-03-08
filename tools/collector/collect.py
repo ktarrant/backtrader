@@ -94,13 +94,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description="""
     Runs backtests on a bunch of tickers and/or strategies
     """)
-    parser.add_argument("--symbol", "-s",
+    parser.add_argument("--ticker", "-t",
                         action="append",
-                        help="Add a single symbol to the collection")
+                        help="Add a single ticker to the collection")
     parser.add_argument("--group", "-g",
                         action="append",
                         choices=list(GROUP_CHOICES.keys()),
-                        help="Add a group of symbols from n preset index")
+                        help="Add a group of tickers from n preset index")
     parser.add_argument("--analysis", "-a",
                         action="append",
                         choices=list(ANALYSIS_CHOICES.keys()),
@@ -137,20 +137,20 @@ if __name__ == "__main__":
     if args.group:
         args.group_label = ",".join(args.group)
 
-        symbols = {s for group in args.group for s in GROUP_CHOICES[group]()}
+        tickers = {s for group in args.group for s in GROUP_CHOICES[group]()}
 
-        if args.symbol:
-            symbols += set(args.symbol)
+        if args.ticker:
+            tickers += set(args.ticker)
 
-    elif args.symbol:
-        symbols = set(args.symbol)
+    elif args.ticker:
+        tickers = set(args.ticker)
 
-        args.group_label = ",".join(symbols)
+        args.group_label = ",".join(tickers)
         if len(args.group_label) > MAX_GROUP_LABEL_LEN:
-            args.group_label = "{}symbols".format(len(symbols))
+            args.group_label = "{}tickers".format(len(tickers))
 
     else:
-        raise NotImplementedError("User must provide either group or symbol!")
+        raise NotImplementedError("User must provide either group or ticker!")
 
     if args.analysis is None:
         analyzers = []
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         analyzers = [ANALYSIS_CHOICES[name] for name in args.analysis]
 
     # TODO: Make the strategy choice configurable
-    table = run_collection(symbols,
+    table = run_collection(tickers,
                            strategy=bt.strategies.STADTDBreakoutStrategy,
                            analyzers=analyzers,
                            plot=args.plot)
