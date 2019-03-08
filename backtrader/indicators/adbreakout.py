@@ -62,5 +62,5 @@ class ADBreakout(Indicator):
 
             was_above_support = self.data0.close[-1] > self.lines.level[-1]
             is_below_support = self.data0.close[0] < self.lines.level[-1]
-            self.lines.breakout[0] = 1 if (
+            self.lines.breakout[0] = -1 if (
                     was_above_support and is_below_support) else 0
