@@ -42,6 +42,9 @@ def get_row_func(strategy, analyzers, plot=False):
         """
         cerebro = bt.Cerebro()
 
+        # Use a sizer that will work independent of share price
+        cerebro.addsizer(bt.sizers.PercentSizer, percents=20)
+
         # Add an indicator that we can extract afterwards
         cerebro.addstrategy(strategy)
 
