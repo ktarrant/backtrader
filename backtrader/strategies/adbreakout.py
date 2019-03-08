@@ -14,7 +14,8 @@ class ADBreakoutStrategy(bt.Strategy):
     """
 
     params = (
-        ("max_entry_td", -1),
+        ("entry_td_max", -1),
+        ("close_td_reversal", False),
     )
 
     lines = (
@@ -38,10 +39,10 @@ class ADBreakoutStrategy(bt.Strategy):
         breakout = self.breakout.lines.breakout[0]
         td_count = self.td.value[0]
 
-        if self.p.max_entry_td < 0:
+        if self.p.entry_td_max < 0:
             # a negative setting means we don't filter entry at all using TD
             self.lines.entry_signal[0] = breakout
-        elif self.p.max_entry_td == 0:
+        elif self.p.entry_td_max == 0:
             # a setting of zero means we simply require the td count to have the
             # same sign as the breakout
             if td_count > 0 and breakout > 0:
@@ -51,16 +52,14 @@ class ADBreakoutStrategy(bt.Strategy):
             else:
                 self.lines.entry_signal[0] = 0
         else:
-            if 0 < td_count <= self.p.max_entry_td and breakout > 0:
+            if 0 < td_count <= self.p.entry_td_max and breakout > 0:
                 self.lines.entry_signal[0] = breakout
-            elif 0 > td_count >= -self.p.max_entry_td and breakout < 0:
+            elif 0 > td_count >= -self.p.entry_td_max and breakout < 0:
                 self.lines.entry_signal[0] = breakout
             else:
                 self.lines.entry_signal[0] = 0
 
-        if self.st.lines.trend[0] != self.st.lines.trend[-1]:
-            self.lines.close_signal[0] = self.st.lines.trend[0]
-        elif self.td.lines.reversal[0] != 0:
+        if self.p.close_td_reversal:
             self.lines.close_signal[0] = self.td.lines.reversal[0]
         else:
             self.lines.close_signal[0] = 0
