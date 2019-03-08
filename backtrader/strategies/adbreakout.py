@@ -2,15 +2,12 @@ import numpy as np
 
 import backtrader as bt
 
-class ADBreakoutStrategy(bt.Strategy):
+class STADTDBreakoutStrategy(bt.Strategy):
     """
-    Strategy which seeks to jump on a breakout away from a support/resistance
+    ST = Supertrend, AD = ADBreakout, TD = TDSequential
+    The strategy seeks to jump on a breakout away from a support/resistance
     level. The goal of the strategy is to jump on a strong move and then take
     profit when the move is extended.
-
-    The default implementation uses the default ADBreakout indicator (which is
-    the Super-Trend variety) for establishing breakout and stop and the TD count
-    indicator for establishing take-profit scenarios
     """
 
     params = (

@@ -24,10 +24,15 @@ ANALYSIS_CHOICES = OrderedDict([
     ("events", bt.analyzers.IexEvents),
 ])
 
+def get_label(strategy):
+    name = type(strategy).__name__
+    prefix = name.replace("Strategy", "")
+    abbv = "".join([c for c in prefix if c.upper() == c])
+    param_values = list(vars(strategy.params).values())
+    param_label = ",".join([str(p) for p in param_values])
+    return "{}({})".format(abbv, param_label) if param_label else abbv
+
 def get_row_func(strategy, analyzers, plot=False):
-
-    strategy_label = strategy.__name__
-
     def _create_row(symbol):
         """
         Runs strategy against historical data and collect the results of all
@@ -65,7 +70,7 @@ def get_row_func(strategy, analyzers, plot=False):
 
         row = pd.Series()
         row["symbol"] = symbol
-        row["strategy"] = strategy_label
+        row["strategy"] = get_label(result)
         for analyzer in result.analyzers:
             analysis = pd.Series(analyzer.get_analysis())
             row = row.append(analysis)
@@ -154,7 +159,7 @@ if __name__ == "__main__":
 
     # TODO: Make the strategy choice configurable
     table = run_collection(symbols,
-                           strategy=bt.strategies.ADBreakoutStrategy,
+                           strategy=bt.strategies.STADTDBreakoutStrategy,
                            analyzers=analyzers,
                            plot=args.plot)
 
