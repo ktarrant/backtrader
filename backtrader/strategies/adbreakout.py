@@ -32,9 +32,6 @@ class ADBreakoutStrategy(bt.Strategy):
                                                  self.wick.lines.wick)
         self.td = bt.indicators.TDSequential()
 
-        self.lines.protect_price = self.st.lines.stop
-        self.lines.close_signal = self.td.lines.reversal
-
         self.driver = bt.drivers.BreakoutDriver(self)
 
     def update_breakout(self):
@@ -61,9 +58,20 @@ class ADBreakoutStrategy(bt.Strategy):
             else:
                 self.lines.entry_signal[0] = 0
 
+        if self.st.lines.trend[0] != self.st.lines.trend[-1]:
+            self.lines.close_signal[0] = self.st.lines.trend[0]
+        elif self.td.lines.reversal[0] != 0:
+            self.lines.close_signal[0] = self.td.lines.reversal[0]
+        else:
+            self.lines.close_signal[0] = 0
+
+        self.lines.protect_price[0] = self.st.lines.stop[0]
+
     def next(self):
         self.update_breakout()
-        self.driver.next()
+        self.driver.next(entry_signal=self.lines.entry_signal[0],
+                         protect_price=self.lines.protect_price[0],
+                         close_signal=self.lines.close_signal[0])
 
     def notify_order(self, order):
         self.driver.notify_order(order)
