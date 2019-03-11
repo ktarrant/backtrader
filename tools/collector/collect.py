@@ -24,7 +24,11 @@ MAX_GROUP_LABEL_LEN = 16
 ANALYSIS_CHOICES = OrderedDict([
     ("latestbar", bt.analyzers.LatestBar),
     ("events", bt.analyzers.IexEvents),
+    ("drawdown", bt.analyzers.DrawDown),
+    ("trades", bt.analyzers.TradeAnalyzer),
 ])
+ANALYSIS_NAMES = OrderedDict([(ANALYSIS_CHOICES[name], name)
+                              for name in ANALYSIS_CHOICES])
 
 def get_label(strategy):
     name = type(strategy).__name__
@@ -33,6 +37,21 @@ def get_label(strategy):
     param_values = list(vars(strategy.params).values())
     param_label = ",".join([str(p) for p in param_values])
     return "{}({})".format(abbv, param_label) if param_label else abbv
+
+def yield_analysis(analysis, prefix=None):
+    for column in analysis:
+        value = analysis[column]
+        if isinstance(value, dict):
+            for subcolumn, subvalue in yield_analysis(value):
+                if prefix:
+                    yield ("_".join([prefix, column, subcolumn]), subvalue)
+                else:
+                    yield ("_".join([column, subcolumn]), subvalue)
+        else:
+            if prefix:
+                yield (prefix+"_"+column, value)
+            else:
+                yield (column, value)
 
 def get_row_func(analyzers, plot=False):
     def _create_row(ticker, strategy, params):
@@ -74,8 +93,16 @@ def get_row_func(analyzers, plot=False):
         row = pd.Series()
         row["ticker"] = ticker
         row["strategy"] = get_label(result)
+
         for analyzer in result.analyzers:
-            analysis = pd.Series(analyzer.get_analysis())
+            analyzer_type = type(analyzer)
+            try:
+                analysis_name = ANALYSIS_NAMES[analyzer_type]
+            except KeyError:
+                print("Unexpected analyzer: {}".format(analyzer))
+                continue
+            analysis = analyzer.get_analysis()
+            analysis = pd.Series(OrderedDict(list(yield_analysis(analysis, prefix=analysis_name))))
             row = row.append(analysis)
         return row
 
@@ -91,7 +118,8 @@ def run_collection(tickers, strategies, analyzers, pool_size=0, plot=False):
         table = pd.DataFrame(p.starmap(row_func, args_list))
         return table
     else:
-        table = pd.DataFrame([row_func(*args) for args in args_list])
+        values = [row_func(*args) for args in args_list]
+        table = pd.DataFrame(values)
         return table
 
 def parse_args():
