@@ -7,8 +7,10 @@ from multiprocessing import Pool
 
 import pandas as pd
 import backtrader as bt
+from backtrader.utils import AutoOrderedDict
 
 from .tickers import dji_components, default_faves, load_sp500_weights
+
 
 GROUP_CHOICES = OrderedDict([
     ("faves", lambda: default_faves),
@@ -32,15 +34,16 @@ def get_label(strategy):
     param_label = ",".join([str(p) for p in param_values])
     return "{}({})".format(abbv, param_label) if param_label else abbv
 
-def get_row_func(strategy, analyzers, plot=False):
-    def _create_row(symbol):
+def get_row_func(analyzers, plot=False):
+    def _create_row(ticker, strategy, params):
         """
         Runs strategy against historical data and collect the results of all
         analyzers into a data row to be added to a summary table
 
         Args:
-            symbol (str): name of the symbol to backtest
+            ticker (str): name of the ticker to backtest
             strategy (Strategy): strategy to use in backtest
+            params (dict): params to pass to Strategy initialization
 
         Returns:
             pd.Series: the result of yield_summary
@@ -48,13 +51,13 @@ def get_row_func(strategy, analyzers, plot=False):
         cerebro = bt.Cerebro()
 
         # Use a sizer that will work independent of share price
-        cerebro.addsizer(bt.sizers.PercentSizer, percents=20)
+        cerebro.addsizer(bt.sizers.PercentSizer, percents=90)
 
         # Add an indicator that we can extract afterwards
-        cerebro.addstrategy(strategy)
+        cerebro.addstrategy(strategy, **params)
 
         # Set up the data source
-        data = bt.feeds.IexData(dataname=symbol, cache=True)
+        data = bt.feeds.IexData(dataname=ticker, cache=True)
         cerebro.adddata(data)
 
         # Add analyzers
@@ -69,7 +72,7 @@ def get_row_func(strategy, analyzers, plot=False):
             cerebro.plot()
 
         row = pd.Series()
-        row["symbol"] = symbol
+        row["ticker"] = ticker
         row["strategy"] = get_label(result)
         for analyzer in result.analyzers:
             analysis = pd.Series(analyzer.get_analysis())
@@ -78,24 +81,27 @@ def get_row_func(strategy, analyzers, plot=False):
 
     return _create_row
 
-def run_collection(symbols, strategy, analyzers, pool_size=0, plot=False):
-    # TODO: Support multiple strategies
-    row_func = get_row_func(strategy, analyzers, plot=plot)
+def run_collection(tickers, strategies, analyzers, pool_size=0, plot=False):
+    row_func = get_row_func(analyzers, plot=plot)
+    args_list = [(ticker, strategy.strategy, strategy.params)
+                for ticker in tickers
+                for strategy in strategies]
     if pool_size > 1:
         p = Pool(pool_size)
-        table = pd.DataFrame(p.map(row_func, symbols))
+        table = pd.DataFrame(p.starmap(row_func, args_list))
         return table
     else:
-        values = [row_func(symbol) for symbol in symbols]
-        table = pd.DataFrame(values)
+        table = pd.DataFrame([row_func(*args) for args in args_list])
         return table
 
 def parse_args():
+    toupper = lambda s: str(s).upper()
     parser = argparse.ArgumentParser(description="""
     Runs backtests on a bunch of tickers and/or strategies
     """)
     parser.add_argument("--ticker", "-t",
                         action="append",
+                        type=toupper,
                         help="Add a single ticker to the collection")
     parser.add_argument("--group", "-g",
                         action="append",
@@ -105,6 +111,9 @@ def parse_args():
                         action="append",
                         choices=list(ANALYSIS_CHOICES.keys()),
                         help="Add an analyzer which will be included in table")
+    parser.add_argument("--optimize",
+                        action="store_true",
+                        help="Add all variants of the strategy to compare")
     parser.add_argument("--pool-size", "-p",
                         default=0,
                         type=int,
@@ -130,6 +139,11 @@ def parse_args():
         raise Exception("Cannot use --pool-size > 1 with the --plot option")
 
     return args
+
+def pack(strategy, **kwargs):
+    return AutoOrderedDict(strategy=strategy,
+                           params=AutoOrderedDict(**kwargs))
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -157,10 +171,28 @@ if __name__ == "__main__":
     else:
         analyzers = [ANALYSIS_CHOICES[name] for name in args.analysis]
 
-    # TODO: Make the strategy choice configurable
-    table = run_collection(tickers,
-                           strategy=bt.strategies.STADTDBreakoutStrategy,
-                           analyzers=analyzers,
+    if args.optimize:
+        strategies = [
+            pack(bt.strategies.STADTDBreakoutStrategy,
+                 entry_td_max=-1,
+                 close_td_reversal=False),
+        ]
+
+        for entry_td_max in range(1, 7):
+            strategies += [
+                pack(bt.strategies.STADTDBreakoutStrategy,
+                     entry_td_max=entry_td_max,
+                     close_td_reversal=True)
+            ]
+
+    else:
+        strategies = [pack(bt.strategies.STADTDBreakoutStrategy,
+                           entry_td_max=4,
+                           close_td_reversal=True)]
+
+
+    table = run_collection(tickers, strategies, analyzers,
+                           pool_size=args.pool_size,
                            plot=args.plot)
 
     with pd.option_context('display.max_rows', None,
