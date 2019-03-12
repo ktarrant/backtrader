@@ -210,7 +210,10 @@ if __name__ == "__main__":
             strategies += [
                 pack(bt.strategies.STADTDBreakoutStrategy,
                      entry_td_max=entry_td_max,
-                     close_td_reversal=True)
+                     close_td_reversal=True),
+                pack(bt.strategies.STADTDBreakoutStrategy,
+                     entry_td_max=entry_td_max,
+                     close_td_reversal=False)
             ]
 
     else:
