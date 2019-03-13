@@ -26,6 +26,7 @@ ANALYSIS_CHOICES = OrderedDict([
     ("events", bt.analyzers.IexEvents),
     ("drawdown", bt.analyzers.DrawDown),
     ("trades", bt.analyzers.TradeAnalyzer),
+    ("sharpe", bt.analyzers.SharpeRatio),
 ])
 ANALYSIS_NAMES = OrderedDict([(ANALYSIS_CHOICES[name], name)
                               for name in ANALYSIS_CHOICES])
@@ -137,7 +138,7 @@ def parse_args():
                         help="Add a group of tickers from n preset index")
     parser.add_argument("--analysis", "-a",
                         action="append",
-                        choices=list(ANALYSIS_CHOICES.keys()),
+                        choices=list(ANALYSIS_CHOICES.keys()) + ["all"],
                         help="Add an analyzer which will be included in table")
     parser.add_argument("--optimize",
                         action="store_true",
@@ -165,6 +166,9 @@ def parse_args():
 
     if args.pool_size > 1 and args.plot:
         raise Exception("Cannot use --pool-size > 1 with the --plot option")
+
+    if args.analysis is not None and "all" in args.analysis:
+        args.analysis = list(ANALYSIS_CHOICES.keys())
 
     return args
 
