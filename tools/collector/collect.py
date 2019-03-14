@@ -187,15 +187,21 @@ if __name__ == "__main__":
                  close_td_reversal=False),
         ]
 
-        for entry_td_max in range(1, 7):
-            strategies += [
-                pack(bt.strategies.STADTDBreakoutStrategy,
-                     entry_td_max=entry_td_max,
-                     close_td_reversal=True),
-                pack(bt.strategies.STADTDBreakoutStrategy,
-                     entry_td_max=entry_td_max,
-                     close_td_reversal=False)
-            ]
+        for factor in [2.0, 3.0, 4.0]:
+            for st_period in [3, 7, 21, 50]:
+                for use_wick in [True, False]:
+                    for entry_td_max in [2, 4, 7]:
+                        for close_td_reversal in [True, False]:
+                            # 3 * 4 * 2 * 3 * 2 = 144
+                            strategies += [
+                                pack(bt.strategies.STADTDBreakoutStrategy,
+                                     entry_td_max=entry_td_max,
+                                     close_td_reversal=close_td_reversal,
+                                     st_factor=factor,
+                                     st_period=st_period,
+                                     st_use_wick=use_wick,
+                                     ),
+                            ]
 
     else:
         strategies = [pack(bt.strategies.STADTDBreakoutStrategy,
