@@ -41,3 +41,8 @@ except ImportError:
 
 
 from .vchartfile import VChartFile
+
+try:
+    from .iexstore import IexStore
+except ImportError:
+    pass  # The user may not have a module installed

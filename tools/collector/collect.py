@@ -107,20 +107,7 @@ def create_row(ticker, strategy, params, analyzers, plot=False):
         row = row.append(analysis)
     return row
 
-def run_collection(tickers, strategies, analyzers, pool_size=0, plot=False):
-    args_list = [(ticker, strategy.strategy, strategy.params, analyzers, plot)
-                for ticker in tickers
-                for strategy in strategies]
-    if pool_size > 1:
-        p = Pool(pool_size)
-        table = pd.DataFrame(p.starmap(create_row, args_list))
-        return table
-    else:
-        values = [create_row(*args) for args in args_list]
-        table = pd.DataFrame(values)
-        return table
-
-def parse_args():
+if __name__ == "__main__":
     toupper = lambda s: str(s).upper()
     parser = argparse.ArgumentParser(description="""
     Runs backtests on a bunch of tickers and/or strategies
@@ -159,23 +146,12 @@ def parse_args():
                         Disabled with pool-size>1 to avoid stressing system""")
     args = parser.parse_args()
     args.today = datetime.date.today()
-    args.pool_size = args.pool_size if args.pool_size > 0 else 0
 
     if args.pool_size > 1 and args.plot:
         raise Exception("Cannot use --pool-size > 1 with the --plot option")
 
     if args.analysis is not None and "all" in args.analysis:
         args.analysis = list(ANALYSIS_CHOICES.keys())
-
-    return args
-
-def pack(strategy, **kwargs):
-    return AutoOrderedDict(strategy=strategy,
-                           params=AutoOrderedDict(**kwargs))
-
-
-if __name__ == "__main__":
-    args = parse_args()
 
     if args.group:
         args.group_label = ",".join(args.group)
@@ -200,6 +176,10 @@ if __name__ == "__main__":
     else:
         analyzers = [ANALYSIS_CHOICES[name] for name in args.analysis]
 
+    pack = lambda strategy, **kwargs: AutoOrderedDict(strategy=strategy,
+                                                      params=AutoOrderedDict(
+                                                          **kwargs))
+
     if args.optimize:
         strategies = [
             pack(bt.strategies.STADTDBreakoutStrategy,
@@ -222,10 +202,17 @@ if __name__ == "__main__":
                            entry_td_max=4,
                            close_td_reversal=True)]
 
+    args_list = [(ticker, strategy.strategy, strategy.params,
+                  analyzers, args.plot)
+                 for ticker in tickers
+                 for strategy in strategies]
 
-    table = run_collection(tickers, strategies, analyzers,
-                           pool_size=args.pool_size,
-                           plot=args.plot)
+    if args.pool_size > 1:
+        p = Pool(args.pool_size)
+        table = pd.DataFrame(p.starmap(create_row, args_list))
+    else:
+        values = [create_row(*args) for args in args_list]
+        table = pd.DataFrame(values)
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
