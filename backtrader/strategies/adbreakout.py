@@ -13,6 +13,12 @@ class STADTDBreakoutStrategy(bt.Strategy):
     params = (
         ("entry_td_max", -1),
         ("close_td_reversal", False),
+        ('st_factor', 3.0),
+        ('st_period', 7),
+        ('st_use_wick', True),
+        ("wick_multiplier_min", 2.5),
+        ("wick_close_percent_max", 0.35),
+        ("td_period", 4),
     )
 
     lines = (
@@ -23,14 +29,19 @@ class STADTDBreakoutStrategy(bt.Strategy):
 
 
     def __init__(self):
-        self.st = bt.indicators.Supertrend()
-        self.wick = bt.indicators.WickReversalSignal()
+        self.st = bt.indicators.Supertrend(factor=self.p.st_factor,
+                                           period=self.p.st_period,
+                                           use_wick=self.p.st_use_wick)
+        self.wick = bt.indicators.WickReversalSignal(
+            wick_multiplier_min=self.p.wick_multiplier_min,
+            close_percent_max=self.p.wick_close_percent_max)
         self.breakout = bt.indicators.ADBreakout(self.data,
                                                  self.st.lines.trend,
                                                  self.wick.lines.wick)
-        self.td = bt.indicators.TDSequential()
+        self.td = bt.indicators.TDSequential(period=self.p.td_period)
 
         self.driver = bt.drivers.BreakoutDriver(self)
+
 
     def update_breakout(self):
         breakout = self.breakout.lines.breakout[0]

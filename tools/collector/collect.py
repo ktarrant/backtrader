@@ -30,13 +30,14 @@ ANALYSIS_CHOICES = OrderedDict([
 ])
 ANALYSIS_NAMES = OrderedDict([(ANALYSIS_CHOICES[name], name)
                               for name in ANALYSIS_CHOICES])
+param_abbv = lambda a: str(a).replace("True", "T").replace("False","F")
 
 def get_label(strategy):
     name = type(strategy).__name__
     prefix = name.replace("Strategy", "")
     abbv = "".join([c for c in prefix if c.upper() == c])
     param_values = list(vars(strategy.params).values())
-    param_label = ",".join([str(p) for p in param_values])
+    param_label = ",".join([param_abbv(p) for p in param_values])
     return "{}({})".format(abbv, param_label) if param_label else abbv
 
 def yield_analysis(analysis, prefix=None):
