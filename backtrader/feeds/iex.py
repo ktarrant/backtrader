@@ -2,6 +2,7 @@ import logging
 import datetime
 import os
 import pickle
+import threading
 from collections import OrderedDict
 
 import pandas as pd
@@ -88,6 +89,8 @@ class IexData(DataBase):
         "vwap",
     )
 
+    cache_lock = threading.Lock()
+
     @staticmethod
     def load_historical(symbol, lookback="1m"):
         """
@@ -128,18 +131,30 @@ class IexData(DataBase):
         self.table = None
         self.index = 0
 
-    def start(self):
-        if self.p.cache:
-            self.cache_fn = self.p.cache_format.format(
-                today=datetime.date.today(),
-                symbol=self.p.dataname,
-                lookback=self.lookback)
+    def load_cache_obj(self):
+        self.cache_fn = self.p.cache_format.format(
+            today=datetime.date.today(),
+            symbol=self.p.dataname,
+            lookback=self.lookback)
 
+        with IexData.cache_lock:
             try:
                 self.cache_fobj = open(self.cache_fn, "rb")
             except IOError:
                 self.cache_fobj = None
 
+    def save_cache_obj(self):
+        cdir, cfile = os.path.split(self.cache_fn)
+
+        with IexData.cache_lock:
+            logger.info("Caching data to path: {}".format(self.cache_fn))
+            os.makedirs(cdir, exist_ok=True)
+            with open(self.cache_fn, "wb") as fobj:
+                pickle.dump(self.table, fobj)
+
+    def start(self):
+        if self.p.cache:
+            self.load_cache_obj()
         else:
             self.cache_fobj = None
 
@@ -188,9 +203,5 @@ class IexData(DataBase):
             self.cache_fobj.close()
 
         if self.p.cache:
-            cdir, cfile = os.path.split(self.cache_fn)
-            logger.info("Caching data to path: {}".format(self.cache_fn))
-            os.makedirs(cdir, exist_ok=True)
-            with open(self.cache_fn, "wb") as fobj:
-                pickle.dump(self.table, fobj)
+            self.save_cache_obj()
 
