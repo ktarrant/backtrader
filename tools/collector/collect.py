@@ -54,7 +54,7 @@ def yield_analysis(analysis, prefix=None):
             else:
                 yield (column, value)
 
-def create_row(ticker, strategy, params, analyzers, plot=False):
+def create_row(ticker, strategy, params, analyzers, args):
     """
     Runs strategy against historical data and collect the results of all
     analyzers into a data row to be added to a summary table
@@ -63,6 +63,8 @@ def create_row(ticker, strategy, params, analyzers, plot=False):
         ticker (str): name of the ticker to backtest
         strategy (Strategy): strategy to use in backtest
         params (dict): params to pass to Strategy initialization
+        analyzers (list): list of analyzers to add to the backtest
+        args: args object with extra options
 
     Returns:
         pd.Series: the result of yield_summary
@@ -77,7 +79,10 @@ def create_row(ticker, strategy, params, analyzers, plot=False):
 
     # Set up the data source
     data = bt.feeds.IexData(dataname=ticker, cache=True)
-    cerebro.adddata(data)
+    if args.compression == "Daily":
+        cerebro.adddata(data)
+    elif args.compression == "Weekly":
+        cerebro.resampledata(data, timeframe=bt.TimeFrame.Weeks)
 
     # Add analyzers
     for analyzer in analyzers:
@@ -87,7 +92,7 @@ def create_row(ticker, strategy, params, analyzers, plot=False):
     result_list = cerebro.run()
     result = result_list[0]
 
-    if plot:
+    if args.plot:
         cerebro.plot()
 
     row = pd.Series()
@@ -119,6 +124,10 @@ if __name__ == "__main__":
                         action="append",
                         choices=list(GROUP_CHOICES.keys()),
                         help="Add a group of tickers from n preset index")
+    parser.add_argument("--compression",
+                        default="Daily",
+                        choices=["Daily", "Weekly"],
+                        help="Bar compression")
     parser.add_argument("--analysis", "-a",
                         action="append",
                         choices=list(ANALYSIS_CHOICES.keys()) + ["all"],
@@ -181,7 +190,7 @@ if __name__ == "__main__":
                   bt.strategies.STADTDBreakoutStrategy,
                   params,
                   analyzers,
-                  args.plot)
+                  args)
                  for ticker in tickers
                  for params in optimizer.generate_strategy_params(
                     bt.strategies.STADTDBreakoutStrategy,
