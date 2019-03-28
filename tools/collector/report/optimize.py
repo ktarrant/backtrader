@@ -2,12 +2,7 @@ import argparse
 import os
 import pickle
 
-def find_default_collection():
-    rootdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    collections_dir = os.path.join(rootdir, "collections")
-    # TODO: Write this to actually find the file in the collections folder
-    file_path = os.path.join(collections_dir, "2019-03-20_dji_collection.pickle")
-    return os.path.abspath(file_path)
+from .util import get_latest_collection
 
 def load_collection(path):
     with open(path, "rb") as fobj:
@@ -28,7 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.collection is None:
-        args.collection = find_default_collection()
+        args.collection = get_latest_collection()
 
     table = load_collection(args.collection)
 
