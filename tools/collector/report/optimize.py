@@ -1,12 +1,8 @@
 import argparse
-import os
-import pickle
 
-from .util import get_latest_collection
+import pandas as pd
 
-def load_collection(path):
-    with open(path, "rb") as fobj:
-        return pickle.load(fobj)
+from .util import get_latest_collection, load_collection
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
@@ -47,5 +43,9 @@ if __name__ == "__main__":
         annotated_pivot.trades_won_percent.idxmax(),
         annotated_pivot.trades_pnl_net_average.idxmax()]]
 
-    print(candidates)
+
+    with pd.option_context('display.max_rows', None,
+                           'display.max_columns', None):
+        print(candidates)
+
     candidates.to_csv("summary.csv")

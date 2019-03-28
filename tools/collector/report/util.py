@@ -2,6 +2,7 @@ import datetime
 import re
 import os
 import pandas as pd
+import pickle
 
 expected_fn = re.compile(
     "([0-9]{4})-([0-9]{2})-([0-9]{2})_([a-zA-Z,]+)_collection.pickle")
@@ -25,3 +26,7 @@ def get_latest_collection(directory="collections"):
 
     fn = collections[collections.date == latest_date].file.iloc[0]
     return os.path.join(directory, fn)
+
+def load_collection(path):
+    with open(path, "rb") as fobj:
+        return pickle.load(fobj)
