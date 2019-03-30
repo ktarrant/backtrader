@@ -126,8 +126,6 @@ screener_mapper = ReportMapper([
 # TODO: Add (+/-%) up/down for the Breakout level
 # TODO: Combine ADB level and events and dd +/- direction markers for ADB events
 # TODO: Add colors for ADB/WR events
-# TODO: Combine TD count and events and add +/ direction markers for TD events
-# TODO: Add colors for TD events
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
