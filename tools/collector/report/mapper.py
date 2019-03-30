@@ -57,6 +57,15 @@ class ColorMapper(object):
         else:
             return ColorMapper.default_colors.binary.neutral
 
+    @staticmethod
+    def day_chg(value, column):
+        if value > 10.0: return ColorMapper.pastels.green.dark
+        elif value > 5.0: return ColorMapper.pastels.green.mid
+        elif value > 0: return ColorMapper.pastels.green.light
+        elif value > -5.0: return ColorMapper.pastels.red.light
+        elif value > -10.0: return ColorMapper.pastels.red.mid
+        else: return ColorMapper.pastels.red.dark
+
 
 class ColumnMapper(object):
     def __init__(self, header, column_mapper=None, color_mapper=None):

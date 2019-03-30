@@ -51,8 +51,9 @@ screener_mapper = ReportMapper([
     ColumnMapper("Ticker", "ticker"),
     ColumnMapper("Close", "latestbar_close"),
     ColumnMapper("Chg %", lambda r: (
-                        int((r.latestbar_close - r.latestbar_prev_close)
-                        / r.latestbar_close * 10000) / 100.0)),
+                            int((r.latestbar_close - r.latestbar_prev_close)
+                            / r.latestbar_close * 10000) / 100.0),
+                 ColorMapper.day_chg),
     ColumnMapper("Volume", "latestbar_volume"),
     ColumnMapper("SuperTrend Trend", get_trend_mapper('latestbar_s_trend'),
                  ColorMapper.binary),
