@@ -7,6 +7,7 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 
 from .util import get_latest_collection, load_collection
+from .mapper import ReportMapper, ColumnMapper
 
 logger = logging.getLogger(__name__)
 
@@ -46,69 +47,20 @@ def get_tdcount_events(r):
 
     return ",".join(events)
 
-screener_column_map = OrderedDict([
-    ("Ticker", "ticker"),
-    ("Close", "latestbar_close"),
-    ("Chg %", lambda r: ((r.latestbar_close - r.latestbar_prev_close)
-                         / r.latestbar_close * 100)),
-    ("Volume", "latestbar_volume"),
-    ("SuperTrend Trend", get_trend_mapper('latestbar_s_trend')),
-    ("SuperTrend Stop", "latestbar_s_stop"),
-    ("ADBreakout Level", "latestbar_adb_level"),
-    ("ADBreakout Events", get_adbreakout_events),
-    ("TD Count", "latestbar_tds_value"),
-    ("TD Events", get_tdcount_events),
+screener_mapper = ReportMapper([
+    ColumnMapper("Ticker", "ticker"),
+    ColumnMapper("Close", "latestbar_close"),
+    ColumnMapper("Chg %", lambda r: (
+                        int((r.latestbar_close - r.latestbar_prev_close)
+                        / r.latestbar_close * 10000) / 100.0)),
+    ColumnMapper("Volume", "latestbar_volume"),
+    ColumnMapper("SuperTrend Trend", get_trend_mapper('latestbar_s_trend')),
+    ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
+    ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
+    ColumnMapper("ADBreakout Events", get_adbreakout_events),
+    ColumnMapper("TD Count", "latestbar_tds_value"),
+    ColumnMapper("TD Events", get_tdcount_events),
 ])
-
-def _apply_map(row, column_map):
-    for column in column_map:
-        mapper = column_map[column]
-        try:
-            if isinstance(mapper, str):
-                yield (column, row[mapper])
-            else:
-                yield (column, mapper(row))
-        except KeyError:
-            pass
-
-def create_evaluator(column_map=screener_column_map):
-
-    def _eval_row(r):
-        return pd.Series(OrderedDict(_apply_map(r, column_map)))
-
-    return _eval_row
-
-def make_screener_table(collection):
-    summary = collection.apply(evaluator, axis=1)
-    return summary.sort_values(by=["TD Count", "SuperTrend Trend", "Chg %"],
-                               ascending=[False, False, False])
-
-def plot_screener_table(nickname, title, summary):
-    """
-    Creates a giant table from the scan result
-
-    Args:
-        nickname (str): nickname to use for chart filename
-        title (str): title to use for chart title
-        summary (pd.DataFrame): collection to plot
-
-    Returns:
-        figure
-    """
-    trace = go.Table(
-        header=dict(values=summary.columns,
-                    # fill=dict(color=COLOR_NEUTRAL_MID),
-                    align=['left'] * 5),
-        cells=dict(values=[summary[col] for col in summary.columns],
-                   # fill=dict(color=[bgcolor]),
-                   align=['left'] * 5))
-    layout = dict(title=title)
-    data = [trace]
-    figure = dict(data=data, layout=layout)
-    logger.info("Creating plot '{}'".format(nickname))
-    url = py.plot(figure, filename=nickname, auto_open=False)
-    logger.info("Plot URL: {}".format(url))
-    return url
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
@@ -127,14 +79,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    evaluator = create_evaluator()
-
     if args.collection is None:
         args.collection = get_latest_collection()
 
     collection = load_collection(args.collection)
 
-    summary = make_screener_table(collection)
+    summary = screener_mapper.get_table(collection)
+    summary = summary.sort_values(by=["TD Count", "SuperTrend Trend", "Chg %"],
+                                  ascending=[False, False, False])
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):
@@ -142,5 +94,8 @@ if __name__ == "__main__":
 
     last_datetime = collection.latestbar_datetime.dropna().iloc[-1].date()
     title = "{} ({})".format(args.nickname, last_datetime)
-    url = plot_screener_table(args.nickname, title, summary)
+    figure = screener_mapper.build_figure(title, collection, summary)
+    logger.info("Creating plot '{}'".format(args.nickname))
+    url = py.plot(figure, filename=args.nickname, auto_open=False)
+    logger.info("Plot URL: {}".format(url))
     print(url)
