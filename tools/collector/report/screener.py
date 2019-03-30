@@ -11,15 +11,17 @@ from .mapper import ReportMapper, ColumnMapper, ColorMapper
 
 logger = logging.getLogger(__name__)
 
+pct_change = lambda actual, comp: (actual - comp) / comp
+
 def close_mapper(r):
     chg = (int((r.latestbar_close - r.latestbar_prev_close)
            / r.latestbar_close * 10000) / 100)
-    return "{close} ({pm} {chg}%)".format(close=r.latestbar_close,
-                                          pm="-" if chg < 0 else "+",
-                                          chg=abs(chg))
+    return "{close} ({chg:+.2%})".format(close=r.latestbar_close,
+                                    chg=pct_change(r.latestbar_close,
+                                                   r.latestbar_prev_close))
 
 def close_color_mapper(_, r):
-    value = (r.latestbar_close - r.latestbar_prev_close) / r.latestbar_close
+    value = pct_change(r.latestbar_close, r.latestbar_prev_close)
     if value > .10: return ColorMapper.pastels.green.dark
     elif value > .05: return ColorMapper.pastels.green.mid
     elif value > 0: return ColorMapper.pastels.green.light
@@ -42,6 +44,20 @@ def trend_color_mapper(value, _):
         return ColorMapper.default_colors.binary.bearish
     else:
         return ColorMapper.default_colors.binary.neutral
+
+def volume_mapper(r):
+    chg = pct_change(r.latestbar_volume, r.latestbar_prev_volume)
+    for suffix, thresh in [("B", 1e9), ("M", 1e6), ("K", 1e3)]:
+        if r.latestbar_volume > thresh:
+            return "{value}{suffix} ({chg:+.2%})".format(
+                value=int(r.latestbar_volume / thresh), suffix=suffix, chg=chg)
+    return str(r.latestbar_volume)
+
+def volume_color_mapper(value, _):
+    if "+" in value:
+        return ColorMapper.pastels.yellow.mid
+    else:
+        return ColorMapper.pastels.yellow.light
 
 def get_adbreakout_events(r):
     events = []
@@ -71,7 +87,7 @@ def get_tdcount_events(r):
 screener_mapper = ReportMapper([
     ColumnMapper("Ticker", "ticker"),
     ColumnMapper("Close", close_mapper, close_color_mapper),
-    ColumnMapper("Volume", "latestbar_volume"),
+    ColumnMapper("Volume", volume_mapper, volume_color_mapper),
     ColumnMapper("SuperTrend Trend", trend_mapper, trend_color_mapper),
     ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
     ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
@@ -81,7 +97,6 @@ screener_mapper = ReportMapper([
 ])
 
 # TODO: Make Ticker column bolded, and add link to Finviz
-# TODO: Change volume to have K/M/B suffix, maybe add change i.e. close ?
 # TODO: Add (-%) down for the Stop
 # TODO: Add (+/-%) up/down for the Breakout level
 # TODO: Combine ADB level and events and dd +/- direction markers for ADB events
