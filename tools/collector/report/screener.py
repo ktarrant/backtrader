@@ -64,6 +64,16 @@ screener_mapper = ReportMapper([
     ColumnMapper("TD Events", get_tdcount_events),
 ])
 
+# TODO: Make Ticker column bolded, and add link to Finviz
+# TODO: Combine close and Chg to be like XXXX.XX (+ XX.X%) to be more efficient
+# TODO: Change volume to have K/M/B suffix, maybe add change i.e. close ?
+# TODO: Add (-%) down for the Stop
+# TODO: Add (+/-%) up/down for the Breakout level
+# TODO: Combine ADB level and events and dd +/- direction markers for ADB events
+# TODO: Add colors for ADB/WR events
+# TODO: Combine TD count and events and add +/ direction markers for TD events
+# TODO: Add colors for TD events
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
     Visualizes the best strategies from a large dataset of strategy backtests
