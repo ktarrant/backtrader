@@ -71,18 +71,44 @@ def get_adbreakout_events(r):
     return ",".join(events)
 
 
-def get_tdcount_events(r):
-    events = []
+def td_mapper(r):
+    suffix = ""
 
     if r.latestbar_tds_reversal != 0:
-        events += ["TDR"]
+        suffix = " (R)"
 
-    if (r.latestbar_prev_tds_reversal != 0 and
-        r.latestbar_tds_reversal == 0 and
-        r.latestbar_tds_value == 1):
-        events += ["TDF"]
+    elif (r.latestbar_prev_tds_reversal != 0 and r.latestbar_tds_value == 1):
+        suffix = " (F)"
 
-    return ",".join(events)
+    else:
+        suffic = ""
+
+    return "{}{}".format(int(r.latestbar_tds_value), suffix)
+
+def td_color_mapper(value, r):
+    count = r.latestbar_tds_value
+    if count >= 6:
+        if r.latestbar_tds_reversal != 0:
+            return ColorMapper.pastels.blue.dark
+        else:
+            return ColorMapper.pastels.green.mid
+    elif count > 0:
+        if "F" in value:
+            return ColorMapper.pastels.green.dark
+        else:
+            return ColorMapper.pastels.green.light
+    elif count == 0:
+        return ColorMapper.pastels.yellow.dark
+    elif count > -6:
+        if "F" in value:
+            return ColorMapper.pastels.red.dark
+        else:
+            return ColorMapper.pastels.red.light
+    else:
+        if r.latestbar_tds_reversal != 0:
+            return ColorMapper.pastels.blue.dark
+        else:
+            return ColorMapper.pastels.red.mid
 
 screener_mapper = ReportMapper([
     ColumnMapper("Ticker", "ticker"),
@@ -92,8 +118,7 @@ screener_mapper = ReportMapper([
     ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
     ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
     ColumnMapper("ADBreakout Events", get_adbreakout_events),
-    ColumnMapper("TD Count", "latestbar_tds_value"),
-    ColumnMapper("TD Events", get_tdcount_events),
+    ColumnMapper("TD Count", td_mapper, td_color_mapper),
 ])
 
 # TODO: Make Ticker column bolded, and add link to Finviz
