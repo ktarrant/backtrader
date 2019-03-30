@@ -7,7 +7,7 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 
 from .util import get_latest_collection, load_collection
-from .mapper import ReportMapper, ColumnMapper
+from .mapper import ReportMapper, ColumnMapper, ColorMapper
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ screener_mapper = ReportMapper([
                         int((r.latestbar_close - r.latestbar_prev_close)
                         / r.latestbar_close * 10000) / 100.0)),
     ColumnMapper("Volume", "latestbar_volume"),
-    ColumnMapper("SuperTrend Trend", get_trend_mapper('latestbar_s_trend')),
+    ColumnMapper("SuperTrend Trend", get_trend_mapper('latestbar_s_trend'),
+                 ColorMapper.binary),
     ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
     ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
     ColumnMapper("ADBreakout Events", get_adbreakout_events),

@@ -48,6 +48,16 @@ class ColorMapper(object):
         }),
     })
 
+    @staticmethod
+    def binary(value, column):
+        if value == "Bullish":
+            return ColorMapper.default_colors.binary.bullish
+        elif value == "Bearish":
+            return ColorMapper.default_colors.binary.bearish
+        else:
+            return ColorMapper.default_colors.binary.neutral
+
+
 class ColumnMapper(object):
     def __init__(self, header, column_mapper=None, color_mapper=None):
         self.header = header
@@ -130,7 +140,7 @@ class ReportMapper(object):
                                        column=table[mapper.header])
             for mapper in self.column_mappers
             if mapper.header in table.columns
-        ], index=table.columns).transpose()
+        ], index=table.columns)
         trace = go.Table(
             header=dict(values=table.columns,
                         fill=dict(
