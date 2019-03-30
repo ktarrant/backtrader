@@ -11,16 +11,37 @@ from .mapper import ReportMapper, ColumnMapper, ColorMapper
 
 logger = logging.getLogger(__name__)
 
-def get_trend_mapper(column):
-    def trend_map(r):
-        if r[column] > 0:
-            return "Bullish"
-        elif r[column] < 0:
-            return "Bearish"
-        else:
-            return "Neutral"
+def close_mapper(r):
+    chg = (int((r.latestbar_close - r.latestbar_prev_close)
+           / r.latestbar_close * 10000) / 100)
+    return "{close} ({pm} {chg}%)".format(close=r.latestbar_close,
+                                          pm="-" if chg < 0 else "+",
+                                          chg=abs(chg))
 
-    return trend_map
+def close_color_mapper(_, r):
+    value = (r.latestbar_close - r.latestbar_prev_close) / r.latestbar_close
+    if value > .10: return ColorMapper.pastels.green.dark
+    elif value > .05: return ColorMapper.pastels.green.mid
+    elif value > 0: return ColorMapper.pastels.green.light
+    elif value > -.05: return ColorMapper.pastels.red.light
+    elif value > -.10: return ColorMapper.pastels.red.mid
+    else: return ColorMapper.pastels.red.dark
+
+def trend_mapper(r):
+    if r.latestbar_s_trend > 0:
+        return "Bullish"
+    elif r.latestbar_s_trend < 0:
+        return "Bearish"
+    else:
+        return "Neutral"
+
+def trend_color_mapper(value, _):
+    if value == "Bullish":
+        return ColorMapper.default_colors.binary.bullish
+    elif value == "Bearish":
+        return ColorMapper.default_colors.binary.bearish
+    else:
+        return ColorMapper.default_colors.binary.neutral
 
 def get_adbreakout_events(r):
     events = []
@@ -49,14 +70,9 @@ def get_tdcount_events(r):
 
 screener_mapper = ReportMapper([
     ColumnMapper("Ticker", "ticker"),
-    ColumnMapper("Close", "latestbar_close"),
-    ColumnMapper("Chg %", lambda r: (
-                            int((r.latestbar_close - r.latestbar_prev_close)
-                            / r.latestbar_close * 10000) / 100.0),
-                 ColorMapper.day_chg),
+    ColumnMapper("Close", close_mapper, close_color_mapper),
     ColumnMapper("Volume", "latestbar_volume"),
-    ColumnMapper("SuperTrend Trend", get_trend_mapper('latestbar_s_trend'),
-                 ColorMapper.binary),
+    ColumnMapper("SuperTrend Trend", trend_mapper, trend_color_mapper),
     ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
     ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
     ColumnMapper("ADBreakout Events", get_adbreakout_events),
@@ -65,7 +81,6 @@ screener_mapper = ReportMapper([
 ])
 
 # TODO: Make Ticker column bolded, and add link to Finviz
-# TODO: Combine close and Chg to be like XXXX.XX (+ XX.X%) to be more efficient
 # TODO: Change volume to have K/M/B suffix, maybe add change i.e. close ?
 # TODO: Add (-%) down for the Stop
 # TODO: Add (+/-%) up/down for the Breakout level
@@ -97,8 +112,8 @@ if __name__ == "__main__":
     collection = load_collection(args.collection)
 
     summary = screener_mapper.build_table(collection)
-    summary = summary.sort_values(by=["TD Count", "SuperTrend Trend", "Chg %"],
-                                  ascending=[False, False, False])
+    summary = summary.sort_values(by=["TD Count", "SuperTrend Trend"],
+                                  ascending=[False, False])
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):

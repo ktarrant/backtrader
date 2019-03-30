@@ -48,24 +48,6 @@ class ColorMapper(object):
         }),
     })
 
-    @staticmethod
-    def binary(value):
-        if value == "Bullish":
-            return ColorMapper.default_colors.binary.bullish
-        elif value == "Bearish":
-            return ColorMapper.default_colors.binary.bearish
-        else:
-            return ColorMapper.default_colors.binary.neutral
-
-    @staticmethod
-    def day_chg(value):
-        if value > 10.0: return ColorMapper.pastels.green.dark
-        elif value > 5.0: return ColorMapper.pastels.green.mid
-        elif value > 0: return ColorMapper.pastels.green.light
-        elif value > -5.0: return ColorMapper.pastels.red.light
-        elif value > -10.0: return ColorMapper.pastels.red.mid
-        else: return ColorMapper.pastels.red.dark
-
 
 class ColumnMapper(object):
     def __init__(self, header, column_mapper=None, color_mapper=None):
@@ -92,11 +74,11 @@ class ColumnMapper(object):
         else:
             return self.column_mapper(row)
 
-    def color(self, value):
+    def color(self, value, row):
         if isinstance(self.color_mapper, str):
             return self.color_mapper
         else:
-            return self.color_mapper(value)
+            return self.color_mapper(value, row)
 
 
 class ReportMapper(object):
@@ -145,7 +127,7 @@ class ReportMapper(object):
                     continue
 
                 self.table.loc[i, mapper.header] = value
-                self.colors.loc[i, mapper.header] = mapper.color(value)
+                self.colors.loc[i, mapper.header] = mapper.color(value, row)
         return self.table
 
     def build_figure(self, title):
