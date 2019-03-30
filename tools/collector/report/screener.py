@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     collection = load_collection(args.collection)
 
-    summary = screener_mapper.get_table(collection)
+    summary = screener_mapper.build_table(collection)
     summary = summary.sort_values(by=["TD Count", "SuperTrend Trend", "Chg %"],
                                   ascending=[False, False, False])
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     last_datetime = collection.latestbar_datetime.dropna().iloc[-1].date()
     title = "{} ({})".format(args.nickname, last_datetime)
-    figure = screener_mapper.build_figure(title, collection, summary)
+    figure = screener_mapper.build_figure(title)
     logger.info("Creating plot '{}'".format(args.nickname))
     url = py.plot(figure, filename=args.nickname, auto_open=False)
     logger.info("Plot URL: {}".format(url))

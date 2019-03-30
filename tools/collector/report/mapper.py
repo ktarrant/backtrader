@@ -49,7 +49,7 @@ class ColorMapper(object):
     })
 
     @staticmethod
-    def binary(value, column):
+    def binary(value):
         if value == "Bullish":
             return ColorMapper.default_colors.binary.bullish
         elif value == "Bearish":
@@ -58,7 +58,7 @@ class ColorMapper(object):
             return ColorMapper.default_colors.binary.neutral
 
     @staticmethod
-    def day_chg(value, column):
+    def day_chg(value):
         if value > 10.0: return ColorMapper.pastels.green.dark
         elif value > 5.0: return ColorMapper.pastels.green.mid
         elif value > 0: return ColorMapper.pastels.green.light
@@ -92,11 +92,11 @@ class ColumnMapper(object):
         else:
             return self.column_mapper(row)
 
-    def color(self, value, column):
+    def color(self, value):
         if isinstance(self.color_mapper, str):
             return self.color_mapper
         else:
-            return self.color_mapper(value, column)
+            return self.color_mapper(value)
 
 
 class ReportMapper(object):
@@ -128,15 +128,27 @@ class ReportMapper(object):
 
         return values
 
-    def get_table(self, collection):
+    def build_table(self, collection):
         """
 
         :param collection: A collection table to summarize
         :return: pd.DataFrame
         """
-        return collection.apply(self.apply_row, axis=1)
+        self.table = pd.DataFrame()
+        self.colors = pd.DataFrame()
+        for i in collection.index:
+            for mapper in self.column_mappers:
+                row = collection.loc[i]
+                try:
+                    value = mapper.apply(row)
+                except KeyError:
+                    continue
 
-    def build_figure(self, title, collection, table):
+                self.table.loc[i, mapper.header] = value
+                self.colors.loc[i, mapper.header] = mapper.color(value)
+        return self.table
+
+    def build_figure(self, title):
         """
         Build a figure from a collection and summary
         :param title: title to use for this figure
@@ -144,19 +156,14 @@ class ReportMapper(object):
         :param table: data to display, built from the collection table
         :return: figure for use with plotly
         """
-        colors = pd.DataFrame([
-            table[mapper.header].apply(mapper.color,
-                                       column=table[mapper.header])
-            for mapper in self.column_mappers
-            if mapper.header in table.columns
-        ], index=table.columns)
         trace = go.Table(
-            header=dict(values=table.columns,
+            header=dict(values=self.table.columns,
                         fill=dict(
                             color=ColorMapper.default_colors.generic.headers),
                         align=['left'] * 5),
-            cells=dict(values=[table[col] for col in table.columns],
-                       fill=dict(color=colors),
+            cells=dict(values=[self.table[col] for col in self.table.columns],
+                       fill=dict(color=[self.colors[col]
+                                        for col in self.colors.columns]),
                        align=['left'] * 5))
         layout = dict(title=title)
         data = [trace]
