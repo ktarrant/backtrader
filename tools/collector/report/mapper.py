@@ -7,35 +7,48 @@ import plotly.graph_objs as go
 
 logger = logging.getLogger(__name__)
 
-class ColumnMapper(object):
-    default_colors = AutoDict({
-        "neutral": AutoDict({
+class ColorMapper(object):
+    pastels = AutoDict({
+        "yellow": AutoDict({
             "dark": '#FFF301',
             "mid": '#FFF5BA',
             "light": '#FFFFD1',
         }),
-        "bullish": AutoDict({
+        "green": AutoDict({
             "dark": '#BFFCC6',
             "mid": "#E7FFAC",
             "light": '#F3FFE3',
         }),
-        "bearish": AutoDict({
+        "red": AutoDict({
             "dark": '#FFABAB',
             "mid": "#FFBEBC",
             "light": '#FFCBC1',
         }),
-        "reversal": AutoDict({
+        "blue": AutoDict({
             "dark": "#6EB5FF",
             "mid": "#85E3FF",
             "light": "#ACE7FF",
         }),
-        "misc": AutoDict({
+        "pink": AutoDict({
             "dark": "#FF9CEE",
             "mid": "#F6A6FF",
             "light": "#FFCCF9",
         })
     })
 
+    default_colors = AutoDict({
+        "generic": AutoDict({
+            "headers": pastels.pink.mid,
+            "neutral": pastels.yellow.light,
+        }),
+        "binary": AutoDict({
+            "bullish": pastels.green.mid,
+            "bearish": pastels.red.mid,
+            "neutral": pastels.yellow.mid,
+        }),
+    })
+
+class ColumnMapper(object):
     def __init__(self, header, column_mapper=None, color_mapper=None):
         self.header = header
 
@@ -49,7 +62,7 @@ class ColumnMapper(object):
             self.color_mapper = color_mapper
         else:
             # use a neutral color by default
-            self.color_mapper = ColumnMapper.default_colors.neutral.light
+            self.color_mapper = ColorMapper.default_colors.generic.neutral
 
     def apply(self, row):
         if isinstance(self.column_mapper, str):
@@ -60,17 +73,14 @@ class ColumnMapper(object):
         else:
             return self.column_mapper(row)
 
-    def color(self, row):
+    def color(self, value, column):
         if isinstance(self.color_mapper, str):
             return self.color_mapper
         else:
-            return self.color_mapper(row)
+            return self.color_mapper(value, column)
 
 
 class ReportMapper(object):
-    default_colors = AutoDict({
-        "header": ColumnMapper.default_colors.neutral.mid
-    })
 
     def __init__(self, column_mappers):
         """
@@ -116,14 +126,15 @@ class ReportMapper(object):
         :return: figure for use with plotly
         """
         colors = pd.DataFrame([
-            collection.apply(mapper.color, axis=1)
+            table[mapper.header].apply(mapper.color,
+                                       column=table[mapper.header])
             for mapper in self.column_mappers
             if mapper.header in table.columns
         ], index=table.columns).transpose()
         trace = go.Table(
             header=dict(values=table.columns,
                         fill=dict(
-                            color=ReportMapper.default_colors.header),
+                            color=ColorMapper.default_colors.generic.headers),
                         align=['left'] * 5),
             cells=dict(values=[table[col] for col in table.columns],
                        fill=dict(color=colors),
