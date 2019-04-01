@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 pct_change = lambda actual, comp: (actual - comp) / comp
 
+def ticker_mapper(r):
+    return """
+    <a href="https://finviz.com/quote.ashx?t={ticker}"><b>{ticker}</b></a>
+    """.strip().format(ticker=r.ticker)
+
 def close_mapper(r):
     return "{close} ({chg:+.2%})".format(close=r.latestbar_close,
                                     chg=pct_change(r.latestbar_close,
@@ -135,7 +140,7 @@ def td_color_mapper(value, r):
             return ColorMapper.pastels.red.mid
 
 screener_mapper = ReportMapper([
-    ColumnMapper("Ticker", "ticker"),
+    ColumnMapper("Ticker", ticker_mapper),
     ColumnMapper("Close", close_mapper, close_color_mapper),
     ColumnMapper("Volume", volume_mapper, volume_color_mapper),
     ColumnMapper("SuperTrend Trend", trend_mapper, trend_color_mapper),
@@ -146,8 +151,6 @@ screener_mapper = ReportMapper([
                  adb_events_color_mapper),
     ColumnMapper("TD Count", td_mapper, td_color_mapper),
 ])
-
-# TODO: Make Ticker column bolded, and add link to Finviz
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
