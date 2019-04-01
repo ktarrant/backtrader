@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 pct_change = lambda actual, comp: (actual - comp) / comp
 
 def close_mapper(r):
-    chg = (int((r.latestbar_close - r.latestbar_prev_close)
-           / r.latestbar_close * 10000) / 100)
     return "{close} ({chg:+.2%})".format(close=r.latestbar_close,
                                     chg=pct_change(r.latestbar_close,
                                                    r.latestbar_prev_close))
@@ -59,21 +57,47 @@ def volume_color_mapper(value, _):
     else:
         return ColorMapper.pastels.yellow.light
 
-def get_adbreakout_events(r):
+def adb_events_mapper(r):
     events = []
+    if r.latestbar_wrs_wick == r.latestbar_high:
+        events += ["WR-"]
+    elif r.latestbar_wrs_wick == r.latestbar_low:
+        events += ["WR+"]
 
-    if not pd.isnull(r.latestbar_wrs_wick):
-        events += ["WR"]
-
-    if r.latestbar_adb_breakout != 0:
-        events += ["ADB"]
+    if r.latestbar_adb_breakout > 0:
+        events += ["ADB+"]
+    elif r.latestbar_adb_breakout < 0:
+        events += ["ADB-"]
 
     return ",".join(events)
 
+def adb_events_color_mapper(value, _):
+    if "ADB" in value:
+        if "ADB-" in value:
+            return ColorMapper.pastels.red.dark
+        else:
+            return ColorMapper.pastels.green.dark
+
+    elif "WR" in value:
+        if "WR-" in value:
+            return ColorMapper.pastels.red.light
+        else:
+            return ColorMapper.pastels.green.light
+    else:
+        return ColorMapper.pastels.yellow.light
+
+def get_from_close_mapper(column):
+    def _from_close_mapper(row):
+        value = row[column]
+        if pd.isnull(value):
+            return ""
+        else:
+            return "{value:.02f} ({chg:+.2%})".format(
+                value=value, chg=pct_change(value, row.latestbar_close))
+
+    return _from_close_mapper
 
 def td_mapper(r):
-    suffix = ""
-
     if r.latestbar_tds_reversal != 0:
         suffix = " (R)"
 
@@ -81,7 +105,7 @@ def td_mapper(r):
         suffix = " (F)"
 
     else:
-        suffic = ""
+        suffix = ""
 
     return "{}{}".format(int(r.latestbar_tds_value), suffix)
 
@@ -115,17 +139,15 @@ screener_mapper = ReportMapper([
     ColumnMapper("Close", close_mapper, close_color_mapper),
     ColumnMapper("Volume", volume_mapper, volume_color_mapper),
     ColumnMapper("SuperTrend Trend", trend_mapper, trend_color_mapper),
-    ColumnMapper("SuperTrend Stop", "latestbar_s_stop"),
-    ColumnMapper("ADBreakout Level", "latestbar_adb_level"),
-    ColumnMapper("ADBreakout Events", get_adbreakout_events),
+    ColumnMapper("SuperTrend Stop", get_from_close_mapper("latestbar_s_stop")),
+    ColumnMapper("ADBreakout Level",
+                 get_from_close_mapper("latestbar_adb_level")),
+    ColumnMapper("ADBreakout Events", adb_events_mapper,
+                 adb_events_color_mapper),
     ColumnMapper("TD Count", td_mapper, td_color_mapper),
 ])
 
 # TODO: Make Ticker column bolded, and add link to Finviz
-# TODO: Add (-%) down for the Stop
-# TODO: Add (+/-%) up/down for the Breakout level
-# TODO: Combine ADB level and events and dd +/- direction markers for ADB events
-# TODO: Add colors for ADB/WR events
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
