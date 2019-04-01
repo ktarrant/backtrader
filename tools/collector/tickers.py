@@ -34,33 +34,31 @@ default_liquid = {
 
 default_faves = {
     # liquid etfs
-    "SPY", "QQQ", "IWM", "VXX", "TLT", "IBB", "EEM", "XLF", "GDX", "XOP", "SLV",
+    "SPY", "QQQ", "IWM", "UVXY", "TLT", "IBB", "EEM", "XLF", "GDX", "XOP",
     # big techies
     "AAPL", "AMZN", "FB", "NFLX", "GOOGL", "MSFT", "ADBE", "ORCL", "CSCO",
     # unicorns
-    "SPOT", "SNAP", "EB", "IRBT", "TSLA", "CHGG", "ROKU", "FITB", "GPRO",
+    "SPOT", "SNAP", "EB", "IRBT", "TSLA", "CHGG", "ROKU", "MEET", "GPRO",
     # video games
     "ATVI", "EA", "TTWO",
     # semis
-    "AMD", "NVDA", "MU", "INTC", "QCOM",
+    "AMD", "NVDA", "MU", "INTC", "QCOM", "AVGO", "XLNX", "STM", "CY", "TSM",
     # banks
-    "BAC", "WFC", "JPM", "C", "GS", "MS",
+    "BAC", "WFC", "JPM", "C", "GS", "MS", "USB",
     # retail
-    "GOOS", "WMT", "LULU", "RH", "FOSL",
+    "GOOS", "WMT", "LULU", "RH", "FOSL", "FIVE", "OLLI", "BJ", "DKS", "AEO",
     # telecom
-    "T", "TMUS", "VZ", "S", "CMCSA",
-    # pot
-    "CGC", "TLRY", "NBEV", "NEPT", "ABBV",
+    "T", "TMUS", "VZ", "S", "CMCSA", "IDCC",
+    # pot and booz
+    "CGC", "TLRY", "NBEV", "NEPT", "ABBV", "STZ", "TAP", "BUD",
     # china
     "TME", "JD", "BABA", "NIO",
     # some grandpa stocks
     "DE", "MCD", "DIS", "BA", "X",
     # dividend candidates
-    "STZ", "STM", "CPB", "XOM", "PPL", "KO", "PEP",
+    "SHO", "TPS", "GPS", "ADM", "BHGE", "JNPR", "CPB",
     # saas
     "NOW", "FIVN", "TEAM", "TWLO", "CRM", "WDAY", "ZS", "FEYE", "VEEV", "OKTA",
-    # misc
-    "BJ", "XLNX", "MEET",
 }
 """list(str): List of liquid, optionable, and well-known tickers according
 to the author """
