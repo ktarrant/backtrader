@@ -150,6 +150,9 @@ screener_mapper = ReportMapper([
     ColumnMapper("ADBreakout Events", adb_events_mapper,
                  adb_events_color_mapper),
     ColumnMapper("TD Count", td_mapper, td_color_mapper),
+], sort_order = [
+    ("latestbar_tds_value", False),
+    ("latestbar_s_trend", False),
 ])
 
 if __name__ == "__main__":
@@ -175,8 +178,6 @@ if __name__ == "__main__":
     collection = load_collection(args.collection)
 
     summary = screener_mapper.build_table(collection)
-    summary = summary.sort_values(by=["TD Count", "SuperTrend Trend"],
-                                  ascending=[False, False])
 
     with pd.option_context('display.max_rows', None,
                            'display.max_columns', None):

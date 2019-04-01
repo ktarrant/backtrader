@@ -83,13 +83,15 @@ class ColumnMapper(object):
 
 class ReportMapper(object):
 
-    def __init__(self, column_mappers):
+    def __init__(self, column_mappers, sort_order=[]):
         """
 
         :param column_mappers: list of ColumnMapper instances, each one
             representing a column in the final report
         """
         self.column_mappers = column_mappers
+        self.sort_columns = [c for c, _ in sort_order]
+        self.sort_ascending = [a for _, a in sort_order]
 
     def apply_row(self, row):
         """
@@ -118,7 +120,9 @@ class ReportMapper(object):
         """
         self.table = pd.DataFrame()
         self.colors = pd.DataFrame()
-        for i in collection.index:
+        sorted_table = collection.sort_values(self.sort_columns,
+                                              ascending=self.sort_ascending)
+        for i in sorted_table.index:
             for mapper in self.column_mappers:
                 row = collection.loc[i]
                 try:
