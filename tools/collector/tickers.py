@@ -56,7 +56,7 @@ default_faves = {
     # industrials
     "DE",  "BA", "X", "GLW", "GE", "IR", "IYJ", "MMM",
     # dividend candidates
-    "SHO", "TPS", "GPS", "ADM", "BHGE", "JNPR",
+    "SHO", "GPS", "ADM", "BHGE", "JNPR",
     # saas
     "NOW", "FIVN", "TEAM", "TWLO", "CRM", "WDAY", "ZS", "FEYE", "VEEV", "OKTA",
 }
