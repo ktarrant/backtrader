@@ -36,11 +36,11 @@ default_faves = {
     # liquid etfs
     "SPY", "QQQ", "IWM", "UVXY", "TLT", "IBB", "EEM", "XLF", "GDX", "XOP",
     # big techies
-    "AAPL", "AMZN", "FB", "NFLX", "GOOGL", "MSFT", "ADBE", "ORCL", "CSCO",
-    # unicorns
-    "SPOT", "SNAP", "EB", "IRBT", "TSLA", "CHGG", "ROKU", "MEET", "GPRO",
-    # video games
-    "ATVI", "EA", "TTWO",
+    "AAPL", "AMZN", "FB", "NFLX", "GOOGL", "MSFT", "ADBE", "ORCL", "IBM",
+    # some personal faves
+    "SPOT", "EB", "IRBT", "TSLA", "ROKU", "MEET", "MCD", "CPB",
+    # entertainment
+    "ATVI", "EA", "TTWO", "WYNN", "MGM", "LVS", "CZR", "RCL", "DIS",
     # semis
     "AMD", "NVDA", "MU", "INTC", "QCOM", "AVGO", "XLNX", "STM", "CY", "TSM",
     # banks
@@ -50,13 +50,13 @@ default_faves = {
     # telecom
     "T", "TMUS", "VZ", "S", "CMCSA", "IDCC",
     # pot and booz
-    "CGC", "TLRY", "NBEV", "NEPT", "ABBV", "STZ", "TAP", "BUD",
+    "CGC", "ACB", "TLRY", "NBEV", "NEPT", "ABBV", "STZ", "TAP", "BUD",
     # china
     "TME", "JD", "BABA", "NIO",
-    # some grandpa stocks
-    "DE", "MCD", "DIS", "BA", "X",
+    # industrials
+    "DE",  "BA", "X", "GLW", "GE", "IR", "IYJ", "MMM",
     # dividend candidates
-    "SHO", "TPS", "GPS", "ADM", "BHGE", "JNPR", "CPB",
+    "SHO", "TPS", "GPS", "ADM", "BHGE", "JNPR",
     # saas
     "NOW", "FIVN", "TEAM", "TWLO", "CRM", "WDAY", "ZS", "FEYE", "VEEV", "OKTA",
 }
