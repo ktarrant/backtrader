@@ -66,24 +66,23 @@ class IexData(with_metaclass(MetaIexData, DataBase)):
         self.index = 0
 
     def _load(self):
-        for column in self.table.columns:
-            if column == "date":
-                label = "datetime"
-                value = date2num(self.table[column].iloc[self.index])
-            else:
-                label = column
-                value = self.table[column].iloc[self.index]
-
-            try:
-                line = getattr(self.lines, label)
-            except AttributeError:
-                continue # don't worry about lines that are not used
-
-            line[0] = value
-
-        self.index += 1
-
-        if self.index == len(self.table.index):
+        if self.index >= len(self.table.index):
             return False
         else:
+            for column in self.table.columns:
+                if column == "date":
+                    label = "datetime"
+                    value = date2num(self.table[column].iloc[self.index])
+                else:
+                    label = column
+                    value = self.table[column].iloc[self.index]
+
+                try:
+                    line = getattr(self.lines, label)
+                except AttributeError:
+                    continue # don't worry about lines that are not used
+
+                line[0] = value
+
+            self.index += 1
             return True
