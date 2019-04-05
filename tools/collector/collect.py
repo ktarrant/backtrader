@@ -17,7 +17,8 @@ GROUP_CHOICES = OrderedDict([
     ("sp500", lambda: list(load_sp500_weights().index)),
 ])
 
-DEFAULT_OUTPUT = "collections/{today}_{group_label}_collection.{ext}"
+DEFAULT_OUTPUT = (
+    "collections/{today}_{group_label}_{compression}_{strategy}.{ext}")
 MAX_GROUP_LABEL_LEN = 16
 
 ANALYSIS_CHOICES = OrderedDict([
@@ -31,13 +32,20 @@ ANALYSIS_NAMES = OrderedDict([(ANALYSIS_CHOICES[name], name)
                               for name in ANALYSIS_CHOICES])
 param_abbv = lambda a: str(a).replace("True", "T").replace("False","F")
 
-def get_label(strategy):
-    name = type(strategy).__name__
+def get_strategy_class_label(strategyClass):
+    name = strategyClass.__name__
     prefix = name.replace("Strategy", "")
-    abbv = "".join([c for c in prefix if c.upper() == c])
+    return "".join([c for c in prefix if c.upper() == c])
+
+STRATEGIES = OrderedDict([(get_strategy_class_label(c), c) for c in [
+    bt.strategies.STADTDBreakoutStrategy,
+]])
+
+def get_strategy_instance_label(strategy):
+    prefix = get_strategy_class_label(type(strategy))
     param_values = list(vars(strategy.params).values())
     param_label = ",".join([param_abbv(p) for p in param_values])
-    return "{}({})".format(abbv, param_label) if param_label else abbv
+    return "{}({})".format(prefix, param_label) if param_label else prefix
 
 def yield_analysis(analysis, prefix=None):
     for column in analysis:
@@ -78,7 +86,7 @@ def create_row(ticker, strategy, params, analyzers, args):
     cerebro.addstrategy(strategy, **params)
 
     # Set up the data source
-    data = bt.feeds.IexData(dataname=ticker, cache=True)
+    data = bt.feeds.IexData(dataname=ticker, cache=args.cache_data)
     if args.compression == "Daily":
         cerebro.adddata(data)
     elif args.compression == "Weekly":
@@ -97,7 +105,7 @@ def create_row(ticker, strategy, params, analyzers, args):
 
     row = pd.Series()
     row["ticker"] = ticker
-    row["strategy"] = get_label(result)
+    row["strategy"] = get_strategy_instance_label(result)
 
     for analyzer in result.analyzers:
         analyzer_type = type(analyzer)
@@ -124,7 +132,7 @@ if __name__ == "__main__":
                         action="append",
                         choices=list(GROUP_CHOICES.keys()),
                         help="Add a group of tickers from n preset index")
-    parser.add_argument("--compression",
+    parser.add_argument("--compression", "-c",
                         default="Daily",
                         choices=["Daily", "Weekly"],
                         help="Bar compression")
@@ -132,6 +140,10 @@ if __name__ == "__main__":
                         action="append",
                         choices=list(ANALYSIS_CHOICES.keys()) + ["all"],
                         help="Add an analyzer which will be included in table")
+    parser.add_argument("--strategy", "-s",
+                        default="STADTDB",
+                        choices=list(STRATEGIES.keys()),
+                        help="Strategy to backtest")
     parser.add_argument("--optimize",
                         action="store_true",
                         help="Add all variants of the strategy to compare")
@@ -142,16 +154,19 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o",
                         default=DEFAULT_OUTPUT,
                         help="Output file format, default: " + DEFAULT_OUTPUT)
-    parser.add_argument("--csv", "-c",
+    parser.add_argument("--csv",
                         action="store_true",
                         help="Generate CSV output")
-    parser.add_argument("--bin", "-b",
+    parser.add_argument("--bin",
                         action="store_true",
                         help="Generate pickled binary output")
     parser.add_argument("--plot",
                         action="store_true",
                         help="""Plot backtests in GUI.
                         Disabled with pool-size>1 to avoid stressing system""")
+    parser.add_argument("--cache-data",
+                        action="store_true",
+                        help="""Cache the collected historical data""")
     args = parser.parse_args()
     args.today = datetime.date.today()
 
@@ -187,7 +202,7 @@ if __name__ == "__main__":
     optimizer = Optimizer()
 
     args_list = [(ticker,
-                  bt.strategies.STADTDBreakoutStrategy,
+                  STRATEGIES[args.strategy],
                   params,
                   analyzers,
                   args)
