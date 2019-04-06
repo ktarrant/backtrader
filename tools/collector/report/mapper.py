@@ -1,4 +1,5 @@
 import logging
+from collections import OrderedDict
 
 from backtrader.utils import AutoDict
 import pandas as pd
@@ -90,8 +91,7 @@ class ReportMapper(object):
             representing a column in the final report
         """
         self.column_mappers = column_mappers
-        self.sort_columns = [c for c, _ in sort_order]
-        self.sort_ascending = [a for _, a in sort_order]
+        self.sort_order = OrderedDict(sort_order)
 
     def apply_row(self, row):
         """
@@ -120,14 +120,19 @@ class ReportMapper(object):
         """
         self.table = pd.DataFrame()
         self.colors = pd.DataFrame()
-        sorted_table = collection.sort_values(self.sort_columns,
-                                              ascending=self.sort_ascending)
+        sort_columns = [col for col in self.sort_order
+                        if col in collection.columns]
+        sort_ascending = [self.sort_order[col] for col in sort_columns]
+        sorted_table = collection.sort_values(sort_columns,
+                                              ascending=sort_ascending)
         for i in sorted_table.index:
             for mapper in self.column_mappers:
                 row = collection.loc[i]
                 try:
                     value = mapper.apply(row)
                 except KeyError:
+                    continue
+                except AttributeError:
                     continue
 
                 self.table.loc[i, mapper.header] = value

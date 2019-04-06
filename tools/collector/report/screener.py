@@ -97,7 +97,7 @@ def get_from_close_mapper(column):
         if pd.isnull(value):
             return ""
         else:
-            return "{value:.02f} ({chg:+.2%})".format(
+            return "{value:.02f} (C{chg:+.2%})".format(
                 value=value, chg=pct_change(value, row.latestbar_close))
 
     return _from_close_mapper
@@ -139,6 +139,26 @@ def td_color_mapper(value, r):
         else:
             return ColorMapper.pastels.red.mid
 
+
+def cloud_mapper(r):
+    close = r.latestbar_close
+    span_a = r.latestbar_i_senkou_span_a
+    span_b = r.latestbar_i_senkou_span_b
+    c_top = max(span_a, span_b)
+    c_bot = min(span_a, span_b)
+    if close > c_top:
+        value = c_top
+    elif close < c_bot:
+        value = c_bot
+    else:
+        return ""
+
+    if pd.isnull(value):
+        return ""
+    else:
+        return "{value:.02f} (C{chg:+.2%})".format(
+            value=value, chg=pct_change(value, r.latestbar_close))
+
 screener_mapper = ReportMapper([
     ColumnMapper("Ticker", ticker_mapper),
     ColumnMapper("Close", close_mapper, close_color_mapper),
@@ -150,6 +170,9 @@ screener_mapper = ReportMapper([
                  get_from_close_mapper("latestbar_adb_level")),
     ColumnMapper("ADBreakout Events", adb_events_mapper,
                  adb_events_color_mapper),
+    ColumnMapper("Ichi Cloud Stop", cloud_mapper),
+    ColumnMapper("Ichi Conversion", get_from_close_mapper("latestbar_i_tenkan_sen")),
+    ColumnMapper("Ichi Base", get_from_close_mapper("latestbar_i_kijun_sen")),
 ], sort_order = [
     ("latestbar_tds_value", False),
     ("latestbar_s_trend", False),
