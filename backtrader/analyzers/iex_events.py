@@ -144,7 +144,7 @@ class IexEvents(bt.Analyzer):
             self.rets["last_ex_date"] = pd.NaT
             self.rets["last_dividend_amount"] = np.NaN
             self.rets["dividend_period"] = np.NaN
-            self.rets["next_ex_date"] = np.NaT
+            self.rets["next_ex_date"] = pd.NaT
         else:
             # TODO: Make the 'after' configurable instead of using default today
             last_ex_dates = dividends_history["exDate"]

@@ -78,7 +78,12 @@ class LatestBar(bt.Analyzer):
                 obj_name = LatestBar.nickname(type(obj).__name__)
                 if obj_name.startswith("_"):
                     continue
-                for field_name in obj.lines.getlinealiases():
+                try:
+                    line_aliases = obj.lines.getlinealiases()
+                except AttributeError:
+                    # this is usually intermediate values we're not intereseted
+                    continue
+                for field_name in line_aliases:
                     full_name = "_".join([obj_name, field_name])
                     line = getattr(obj.lines, field_name)
                     try:
