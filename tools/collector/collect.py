@@ -39,6 +39,7 @@ def get_strategy_class_label(strategyClass):
 
 STRATEGIES = OrderedDict([(get_strategy_class_label(c), c) for c in [
     bt.strategies.STADTDBreakoutStrategy,
+    bt.strategies.IADTDBreakoutStrategy,
 ]])
 
 def get_strategy_instance_label(strategy):
