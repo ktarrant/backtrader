@@ -1,12 +1,13 @@
-from backtrader.indicator import Indicator
+import backtrader as bt
 
-
-class TDSequential(Indicator):
+class TDSequential(bt.Indicator):
 
     nickname = "td"
 
     params = (
         ("period", 4),
+        ("reversal_count", 7),
+        ("shoulder_period", 2),
     )
 
     lines = (
@@ -25,30 +26,30 @@ class TDSequential(Indicator):
     )
 
     def __init__(self):
-        self.addminperiod(self.params.period)
-
-    def td_base(self, bar):
-        cbar = self.data.close[-bar]
-        pbar = self.data.close[-bar-self.p.period]
-        return 1 if cbar > pbar else (-1 if cbar < pbar else 0)
+        cbar = self.data.close
+        pbar = self.data.close(-self.p.period)
+        self.td_base = bt.If(cbar > pbar, 1, bt.If(cbar < pbar, -1, 0))
 
     def ta_base(self, bar):
-        up = 1.0 if (self.td_base(bar) == 1.0 and (
-                self.data.high[-bar] > self.data.high[-bar-2])) else 0
-        dn = -1.0 if (self.td_base(bar) == -1.0 and (
-                self.data.low[-bar] < self.data.low[-bar-2])) else 0
+        sp = self.p.shoulder_period
+        up = 1.0 if (self.td_base[-bar] == 1.0 and (
+                self.data.high[-bar] > self.data.high[-bar-sp])) else 0
+        dn = -1.0 if (self.td_base[-bar] == -1.0 and (
+                self.data.low[-bar] < self.data.low[-bar-sp])) else 0
         return up + dn
 
     def nextstart(self):
         self.lines.value[0] = 0
 
     def next(self):
-        tdf = self.td_base(0)
-        tdc = tdf
-        for i in range(8):
-            if self.td_base(i+1) == tdf:
-                tdc += tdf
-            else:
-                break
+        tdf = self.td_base[0]
+        tdc = 1
+        try:
+            while self.td_base[-tdc] == tdf:
+                tdc += 1
+        except IndexError:
+            # expected at the start of the backtest
+            pass
         self.lines.value[0] = tdc
-        self.lines.reversal[0] = self.ta_base(0) if (abs(tdc) > 7) else 0
+        rc = self.p.reversal_count
+        self.lines.reversal[0] = self.ta_base(0) if (tdc > rc) else 0
