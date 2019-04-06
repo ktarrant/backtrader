@@ -43,10 +43,12 @@ class TDSequential(bt.Indicator):
 
     def next(self):
         tdf = self.td_base[0]
-        tdc = 1
+        tdc = tdf
+        i = 1
         try:
-            while self.td_base[-tdc] == tdf:
-                tdc += 1
+            while self.td_base[-i] == tdf:
+                i += 1
+                tdc += tdf
         except IndexError:
             # expected at the start of the backtest
             pass
