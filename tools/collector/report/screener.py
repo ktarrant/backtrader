@@ -164,6 +164,7 @@ screener_mapper = ReportMapper([
     ColumnMapper("Close", close_mapper, close_color_mapper),
     ColumnMapper("Volume", volume_mapper, volume_color_mapper),
     ColumnMapper("Meme Count", td_mapper, td_color_mapper),
+    ColumnMapper("Meme Level", get_from_close_mapper("latestbar_tds_level")),
     ColumnMapper("SuperTrend Trend", trend_mapper, trend_color_mapper),
     ColumnMapper("SuperTrend Stop", get_from_close_mapper("latestbar_s_stop")),
     ColumnMapper("ADBreakout Level",

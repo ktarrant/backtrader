@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 
 expected_fn = re.compile(
-    "([0-9]{4})-([0-9]{2})-([0-9]{2})_([a-zA-Z,]+)_collection.pickle")
+    "([0-9]{4})-([0-9]{2})-([0-9]{2})_([a-zA-Z,_]+).pickle")
 
 def get_collections(directory="collections"):
     files = os.listdir(directory)
