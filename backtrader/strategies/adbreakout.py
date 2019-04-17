@@ -16,8 +16,6 @@ class STADTDBreakoutStrategy(bt.Strategy):
         ('st_factor', 3.0),
         ('st_period', 7),
         ('st_use_wick', True),
-        ("wick_multiplier_min", 2.5),
-        ("wick_close_percent_max", 0.35),
         ("td_period", 4),
     )
 
@@ -32,12 +30,10 @@ class STADTDBreakoutStrategy(bt.Strategy):
         self.st = bt.indicators.Supertrend(factor=self.p.st_factor,
                                            period=self.p.st_period,
                                            use_wick=self.p.st_use_wick)
-        self.wick = bt.indicators.WickReversalSignal(
-            wick_multiplier_min=self.p.wick_multiplier_min,
-            close_percent_max=self.p.wick_close_percent_max)
+        self.reversal = bt.indicators.ReversalSignal()
         self.breakout = bt.indicators.ADBreakout(self.data,
                                                  self.st.lines.trend,
-                                                 self.wick.lines.wick)
+                                                 self.reversal.lines.wick)
         self.td = bt.indicators.TDSequential(period=self.p.td_period)
 
         self.driver = bt.drivers.BreakoutDriver(self)
@@ -127,10 +123,10 @@ class IADTDBreakoutStrategy(bt.Strategy):
         self.trend = self.data.close - self.ichi.lines.senkou_span_a
         self.lines.protect_price = self.ichi.lines.senkou_span_a
 
-        self.wick = bt.indicators.WickReversalSignal()
+        self.reversal = bt.indicators.ReversalSignal()
         self.breakout = bt.indicators.ADBreakout(self.data,
                                                  self.trend,
-                                                 self.wick.lines.wick)
+                                                 self.reversal.lines.wick)
         self.td = bt.indicators.TDSequential()
 
         self.driver = bt.drivers.BreakoutDriver(self)
