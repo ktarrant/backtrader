@@ -141,7 +141,7 @@ class ReversalSignal(bt.Indicator):
                   markersize=8.0,
                   ls="",
                   ),
-        any=dict(_plothide=True),
+        any=dict(_plotskip=True),
     )
 
     def __init__(self):
@@ -149,3 +149,8 @@ class ReversalSignal(bt.Indicator):
         self.frs = FadeReversalSignal()
         self.lines.wick = self.wrs.lines.wick
         self.lines.fade = self.frs.lines.fade
+        self.lines.any = bt.If(abs(self.lines.wick) > 0,
+                               self.lines.wick,
+                               bt.If(abs(self.lines.fade) > 0,
+                                     self.lines.fade,
+                                     np.NaN))
