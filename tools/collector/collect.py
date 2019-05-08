@@ -40,6 +40,7 @@ def get_strategy_class_label(strategyClass):
 STRATEGIES = OrderedDict([(get_strategy_class_label(c), c) for c in [
     bt.strategies.STADTDBreakoutStrategy,
     bt.strategies.IADTDBreakoutStrategy,
+    bt.strategies.TDReversalStrategy,
 ]])
 
 def get_strategy_instance_label(strategy):
@@ -209,7 +210,7 @@ if __name__ == "__main__":
                   args)
                  for ticker in tickers
                  for params in optimizer.generate_strategy_params(
-                    bt.strategies.STADTDBreakoutStrategy,
+                    STRATEGIES[args.strategy],
                     optimize=args.optimize)
                  ]
 

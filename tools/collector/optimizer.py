@@ -37,4 +37,4 @@ class Optimizer(object):
                 yield args
 
         else:
-            raise NotImplementedError()
+            yield AutoOrderedDict()
