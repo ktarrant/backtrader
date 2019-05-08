@@ -103,7 +103,7 @@ def create_row(ticker, strategy, params, analyzers, args):
     result = result_list[0]
 
     if args.plot:
-        cerebro.plot()
+        cerebro.plot(style="candle")
 
     row = pd.Series()
     row["ticker"] = ticker

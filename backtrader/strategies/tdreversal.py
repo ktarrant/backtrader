@@ -10,7 +10,7 @@ class TDReversalStrategy(bt.Strategy):
 
     params = (
         ("period", 4),
-        ("entry_count", 2),
+        ("entry_count", 1),
     )
 
     lines = (
@@ -35,7 +35,10 @@ class TDReversalStrategy(bt.Strategy):
         # Currently this sets the limit buy to the hl/2 of the previous candle,
         # to retain some sort of conservatism
         # TODO: We need to make this configurable so we can optimize it!
-        self.lines.entry_price[0] = (self.data.high[0] + self.data.low[0]) / 2
+        if abs(self.td.lines.value[0]) == 1:
+            self.lines.entry_price[0] = (self.data.high[0] + self.data.low[0]) / 2
+        else:
+            self.lines.entry_price[0] = self.lines.entry_price[-1]
         self.lines.protect_price[0] = self.td.lines.level[0]
         self.driver.next(entry_signal=self.lines.entry_signal[0],
                          entry_price=self.lines.entry_price[0],

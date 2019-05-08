@@ -21,6 +21,7 @@ class TDSequential(bt.Indicator):
     plotinfo = dict(
         plothlines=[-9, 9],
         plotymargin=0.15,
+        # subplot=False,
     )
 
     plotlines = dict(
@@ -57,6 +58,7 @@ class TDSequential(bt.Indicator):
 
     def nextstart(self):
         self.lines.value[0] = 0
+        self.lines.level[0] = np.NaN
 
     def next(self):
         self._update_count()
@@ -66,20 +68,18 @@ class TDSequential(bt.Indicator):
                       if self.lines.value[0] > self.p.cap_count
                       else self.lines.value[0])
             si = int(self.p.shoulder_count - capped)
-            ei = int(si - self.p.shoulder_period)
-            self.lines.level[0] = max(self.data.high[si:ei])
-            self.lines.reversal[0] = (
-                1 if (self.data.close[0] > self.lines.level[0]) else 0)
+            self.lines.level[0] = max([self.data.high[i] for i in range(si, 0)])
+            self.lines.reversal[0] = (1 if self.lines.reversal[-1] == 1 else (
+                1 if (self.data.close[0] > self.lines.level[0]) else 0))
 
         elif self.lines.value[0] < -self.p.shoulder_count:
             capped = (self.p.cap_count
                       if self.lines.value[0] < -self.p.cap_count
                       else -self.lines.value[0])
             si = int(self.p.shoulder_count - capped)
-            ei = int(si - self.p.shoulder_period)
-            self.lines.level[0] = min(self.data.low[si:ei])
-            self.lines.reversal[0] = (
-                -1 if (self.data.close[0] < self.lines.level[0]) else 0)
+            self.lines.level[0] = min([self.data.low[i] for i in range(si, 0)])
+            self.lines.reversal[0] = (-1 if self.lines.reversal[-1] == -1 else (
+                -1 if (self.data.close[0] < self.lines.level[0]) else 0))
         else:
-            self.lines.level[0] = np.NaN
+            self.lines.level[0] = self.lines.level[-1]
             self.lines.reversal[0] = 0
