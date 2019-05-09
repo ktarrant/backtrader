@@ -98,6 +98,10 @@ def create_row(ticker, strategy, params, analyzers, args):
     for analyzer in analyzers:
         cerebro.addanalyzer(analyzer)
 
+    # Add observers
+    cerebro.addobserver(bt.observers.DriverStateObserver)
+    cerebro.addobserver(bt.observers.DriverPriceObserver)
+
     # Run over everything
     result_list = cerebro.run()
     result = result_list[0]

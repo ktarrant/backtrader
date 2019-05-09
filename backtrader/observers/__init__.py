@@ -32,3 +32,5 @@ from .timereturn import *
 from .benchmark import *
 
 from .logreturns import *
+
+from .driver import DriverStateObserver, DriverPriceObserver
