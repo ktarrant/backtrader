@@ -39,7 +39,7 @@ class DriverPriceObserver(bt.Observer):
 
     plotinfo = dict(plot=True, subplot=False)
     plotlines = dict(
-        entry_price = dict(marker='+', markersize=3.0, color='yellow'),
+        entry_price = dict(marker='+', markersize=3.0, color='black'),
         protect_price = dict(marker='x', markersize=3.0, color='pink'),
     )
 

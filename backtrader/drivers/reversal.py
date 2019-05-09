@@ -62,14 +62,22 @@ class ReversalDriver(object):
         self.machine.add_transition("next", "entry", "cancel_entry",
                                     conditions=["is_close_signal"],
                                     after=["cancel_entry_order"])
+        self.machine.add_transition("next", "entry", "cancel_entry",
+                                    unless=["is_entry_signal"],
+                                    after=["cancel_entry_order"])
         self.machine.add_transition("next", "entry", "entry",
-                                    conditions=["is_entry_price_changed"],
+                                    conditions=["is_entry_price_changed",
+                                                "is_entry_signal"],
                                     after=["cancel_entry_order"])
 
         # from cancel_entry
         self.machine.add_transition("notify_order", "cancel_entry", "idle",
                                     conditions=["is_entry_order_cancelled"])
-
+        self.machine.add_transition("notify_order",
+                                    "cancel_entry",
+                                    "close",
+                                    conditions=["is_entry_order_completed"],
+                                    after=["send_close_order"])
         # from start_protect
         self.machine.add_transition("notify_order", "start_protect", "idle",
                                     conditions=["is_protect_order_completed"])
