@@ -68,7 +68,8 @@ class TDSequential(bt.Indicator):
                       if self.lines.value[0] > self.p.cap_count
                       else self.lines.value[0])
             si = int(self.p.shoulder_count - capped)
-            self.lines.level[0] = max([self.data.high[i] for i in range(si, 0)])
+            recent_level = max([self.data.high[i] for i in range(si, 0)])
+            self.lines.level[0] = max([recent_level, self.lines.level[-1]])
             self.lines.reversal[0] = (1 if self.lines.reversal[-1] == 1 else (
                 1 if (self.data.close[0] > self.lines.level[0]) else 0))
 
@@ -77,9 +78,11 @@ class TDSequential(bt.Indicator):
                       if self.lines.value[0] < -self.p.cap_count
                       else -self.lines.value[0])
             si = int(self.p.shoulder_count - capped)
-            self.lines.level[0] = min([self.data.low[i] for i in range(si, 0)])
+            recent_level = min([self.data.low[i] for i in range(si, 0)])
+            self.lines.level[0] = min([recent_level, self.lines.level[-1]])
             self.lines.reversal[0] = (-1 if self.lines.reversal[-1] == -1 else (
                 -1 if (self.data.close[0] < self.lines.level[0]) else 0))
+
         else:
             self.lines.level[0] = self.lines.level[-1]
             self.lines.reversal[0] = 0
