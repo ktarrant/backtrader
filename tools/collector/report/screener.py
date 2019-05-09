@@ -9,6 +9,8 @@ import plotly.graph_objs as go
 from .util import get_latest_collection, load_collection
 from .mapper import ReportMapper, ColumnMapper, ColorMapper
 
+import backtrader as bt
+
 logger = logging.getLogger(__name__)
 
 pct_change = lambda actual, comp: (actual - comp) / comp
@@ -159,6 +161,27 @@ def cloud_mapper(r):
         return "{value:.02f} (C{chg:+.2%})".format(
             value=value, chg=pct_change(value, r.latestbar_close))
 
+def tdr_mapper(r):
+    state_id = r.latestbar_dso_state
+    state = bt.drivers.ReversalDriver.states[int(state_id)]
+    last_state_id = r.latestbar_prev_dso_state
+    entry_price = r.latestbar_dpo_entry_price
+    protect_price = r.latestbar_dpo_protect_price
+    if "protect" in state:
+        return "Protect {value:.02f}".format(value=protect_price)
+    elif "entry" in state:
+        return "Entry {value:.02f}".format(value=entry_price)
+    else:
+        return "Flat"
+
+def winloss_mapper(r):
+    try:
+        total = int(r.trades_total_closed)
+        won = int(r.trades_won_total)
+    except ValueError:
+        return "N/A"
+    return "{}/{} ({.2%})".format(won, total, won/total)
+
 screener_mapper = ReportMapper([
     ColumnMapper("Ticker", ticker_mapper),
     ColumnMapper("Close", close_mapper, close_color_mapper),
@@ -174,6 +197,8 @@ screener_mapper = ReportMapper([
     ColumnMapper("Ichi Cloud Stop", cloud_mapper),
     ColumnMapper("Ichi Conversion", get_from_close_mapper("latestbar_i_tenkan_sen")),
     ColumnMapper("Ichi Base", get_from_close_mapper("latestbar_i_kijun_sen")),
+    ColumnMapper("TDR State", tdr_mapper),
+    # ColumnMapper("Win/Loss", winloss_mapper),
 ], sort_order = [
     ("latestbar_tds_value", False),
     ("latestbar_s_trend", False),
