@@ -73,6 +73,8 @@ class IexEvents(bt.Analyzer):
         url = IexEvents.URL_DIVIDENDS.format(symbol=symbol, range=lookback)
         logger.info("Loading: '{}'".format(url))
         data = requests.get(url).json()
+        if not data:
+            return pd.DataFrame()
         try:
             df = pd.DataFrame(data)
         except ValueError:

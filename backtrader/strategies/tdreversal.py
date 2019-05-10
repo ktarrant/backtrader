@@ -10,9 +10,10 @@ class TDReversalStrategy(bt.Strategy):
 
     params = (
         ("period", 4),
-        ("max_entry_count", 2),
+        ("max_entry_count", 1),
         ("protect_entry_count", 4),
         ("cap_count", 9),
+        ("min_atr_percent", 0.015),
     )
 
     lines = (
@@ -24,10 +25,16 @@ class TDReversalStrategy(bt.Strategy):
 
     def __init__(self):
         self.td = bt.indicators.TDSequential(period=self.p.period)
+        self.atr = bt.indicators.AverageTrueRange()
 
         self.driver = bt.drivers.ReversalDriver(self)
 
     def get_entry_signal(self):
+        # Require a minimum ATR to weed out low-probability trades
+        atr_percent = self.atr.lines.atr[0] / self.data.close[0]
+        if atr_percent < self.p.min_atr_percent:
+            return 0
+
         for li in range(1, self.p.max_entry_count + 1):
             reversal = self.td.lines.reversal[-li]
             value = self.td.lines.value[0]
