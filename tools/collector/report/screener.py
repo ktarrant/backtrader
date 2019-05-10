@@ -167,10 +167,22 @@ def tdr_mapper(r):
     last_state_id = r.latestbar_prev_dso_state
     entry_price = r.latestbar_dpo_entry_price
     protect_price = r.latestbar_dpo_protect_price
-    if "protect" in state:
-        return "Protect {value:.02f}".format(value=protect_price)
+    if r.latestbar_b_cash > r.latestbar_b_value:
+        direction = "Short"
+        entry_order = "Sell"
+        exit_order = "Buy"
+    else:
+        direction = "Long"
+        entry_order = "Buy"
+        exit_order = "Sell"
+    entry_order_str = f"{entry_order} Limit {entry_price:.02f}"
+    stop_order_str = f"{exit_order} Stop {protect_price:.02f}"
+    if state is "close" or "cancel" in state:
+        return f"Closing {direction}"
+    elif "protect" in state:
+        return f"Protect {direction}; {stop_order_str}"
     elif "entry" in state:
-        return "Entry {value:.02f}".format(value=entry_price)
+        return f"Entry {direction}; {entry_order_str}"
     else:
         return "Flat"
 
