@@ -14,8 +14,9 @@ class TDSequential(bt.Indicator):
 
     lines = (
         "value",
-        "level",
         "reversal",
+        "toe",
+        "shoulder",
     )
 
     plotinfo = dict(
@@ -26,8 +27,9 @@ class TDSequential(bt.Indicator):
 
     plotlines = dict(
         value=dict(_method='bar', alpha=0.50, width=1.0),
-        level=dict(_plotskip=True),
         reversal=dict(_method='bar', alpha=1.00, width=1.0),
+        toe=dict(_plotskip=True),
+        shoulder=dict(_plotskip=True),
     )
 
     def __init__(self):
@@ -58,31 +60,55 @@ class TDSequential(bt.Indicator):
 
     def nextstart(self):
         self.lines.value[0] = 0
-        self.lines.level[0] = np.NaN
+        self.lines.toe[0] = np.NaN
+        self.lines.shoulder[0] = np.NaN
 
     def next(self):
         self._update_count()
 
-        if self.lines.value[0] > self.p.shoulder_count:
-            capped = (self.p.cap_count
-                      if self.lines.value[0] > self.p.cap_count
-                      else self.lines.value[0])
-            si = int(self.p.shoulder_count - capped)
-            recent_level = max([self.data.high[i] for i in range(si, 0)])
-            self.lines.level[0] = max([recent_level, self.lines.level[-1]])
-            self.lines.reversal[0] = (1 if self.lines.reversal[-1] == 1 else (
-                1 if (self.data.close[0] > self.lines.level[0]) else 0))
+        value = self.lines.value[0]
 
-        elif self.lines.value[0] < -self.p.shoulder_count:
-            capped = (self.p.cap_count
-                      if self.lines.value[0] < -self.p.cap_count
-                      else -self.lines.value[0])
-            si = int(self.p.shoulder_count - capped)
-            recent_level = min([self.data.low[i] for i in range(si, 0)])
-            self.lines.level[0] = min([recent_level, self.lines.level[-1]])
+        if value == 1:
+            self.lines.toe[0] = self.data.low[0]
+        elif value == -1:
+            self.lines.toe[0] = self.data.high[0]
+        else:
+            self.lines.toe[0] = self.lines.toe[-1]
+
+        if value > self.p.shoulder_count:
+
+            if value >= self.p.cap_count:
+                ei = int(self.p.shoulder_count - self.p.cap_count) + 1
+                si = ei - self.p.shoulder_period
+                self.lines.shoulder[0] = max([self.data.high[i]
+                                              for i in range(si, ei)])
+            else:
+                ei = int(self.p.shoulder_count - value) + 1
+                si = ei - self.p.shoulder_period
+                self.lines.shoulder[0] = max([self.data.high[i]
+                                              for i in range(si, ei)]
+                                             + [self.lines.shoulder[-1]])
+
+            self.lines.reversal[0] = (1 if self.lines.reversal[-1] == 1 else (
+                1 if (self.data.close[0] > self.lines.shoulder[0]) else 0))
+
+        elif value < -self.p.shoulder_count:
+
+            if value <= -self.p.cap_count:
+                ei = int(self.p.shoulder_count - self.p.cap_count) + 1
+                si = ei - self.p.shoulder_period
+                self.lines.shoulder[0] = max([self.data.low[i]
+                                              for i in range(si, ei)])
+            else:
+                ei = int(self.p.shoulder_count + value) + 1
+                si = ei - self.p.shoulder_period
+                self.lines.shoulder[0] = max([self.data.low[i]
+                                              for i in range(si, ei)]
+                                             + [self.lines.shoulder[-1]])
+
             self.lines.reversal[0] = (-1 if self.lines.reversal[-1] == -1 else (
-                -1 if (self.data.close[0] < self.lines.level[0]) else 0))
+                -1 if (self.data.close[0] < self.lines.shoulder[0]) else 0))
 
         else:
-            self.lines.level[0] = self.lines.level[-1]
+            self.lines.shoulder[0] = self.lines.shoulder[-1]
             self.lines.reversal[0] = 0

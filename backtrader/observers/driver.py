@@ -39,8 +39,8 @@ class DriverPriceObserver(bt.Observer):
 
     plotinfo = dict(plot=True, subplot=False)
     plotlines = dict(
-        entry_price = dict(marker='+', markersize=3.0, color='black'),
-        protect_price = dict(marker='x', markersize=3.0, color='pink'),
+        entry_price = dict(marker='+', markersize=3.0, color='black', fillstyle='full'),
+        protect_price = dict(marker='x', markersize=3.0, color='pink', fillstyle='full'),
     )
 
     def get_owner_value(self, line):

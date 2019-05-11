@@ -13,7 +13,7 @@ class TDReversalStrategy(bt.Strategy):
         ("max_entry_count", 1),
         ("protect_entry_count", 4),
         ("cap_count", 9),
-        ("min_atr_percent", 0.015),
+        ("min_atr_percent", 0.0),
     )
 
     lines = (
@@ -50,17 +50,17 @@ class TDReversalStrategy(bt.Strategy):
         # to retain some sort of conservatism
         # TODO: We need to make this configurable so we can optimize it!
         td_value = self.td.lines.value[0]
-        if abs(td_value) == 1:
+        if abs(td_value) <= self.p.max_entry_count:
             self.lines.entry_price[0] = (self.data.high[0] + self.data.low[0]) / 2
         else:
             self.lines.entry_price[0] = self.lines.entry_price[-1]
 
         if abs(td_value) < self.p.protect_entry_count:
-            self.lines.protect_price[0] = self.td.lines.level[0]
+            self.lines.protect_price[0] = self.td.lines.toe[0]
         elif abs(td_value) < self.p.cap_count:
             self.lines.protect_price[0] = self.lines.entry_price[0]
         else:
-            self.lines.protect_price[0] = self.td.lines.level[0]
+            self.lines.protect_price[0] = self.td.lines.shoulder[0]
 
         self.driver.next(entry_signal=self.lines.entry_signal[0],
                          entry_price=self.lines.entry_price[0],
