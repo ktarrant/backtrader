@@ -147,7 +147,7 @@ if __name__ == "__main__":
                         choices=list(ANALYSIS_CHOICES.keys()) + ["all"],
                         help="Add an analyzer which will be included in table")
     parser.add_argument("--strategy", "-s",
-                        default="STADTDB",
+                        default="TDR",
                         choices=list(STRATEGIES.keys()),
                         help="Strategy to backtest")
     parser.add_argument("--optimize",
