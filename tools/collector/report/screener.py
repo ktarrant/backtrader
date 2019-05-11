@@ -171,17 +171,23 @@ def tdr_mapper(r):
         direction = "Short"
         entry_order = "Sell"
         exit_order = "Buy"
-    else:
+        if r.latestbar_close >= protect_price:
+            state = "close"
+    elif r.latestbar_b_cash < r.latestbar_b_value:
         direction = "Long"
         entry_order = "Buy"
         exit_order = "Sell"
-    entry_order_str = f"{entry_order} Limit {entry_price:.02f}"
-    stop_order_str = f"{exit_order} Stop {protect_price:.02f}"
+        if r.latestbar_close <= protect_price:
+            state = "close"
+    else:
+        state = "flat"
     if state is "close" or "cancel" in state:
         return f"Closing {direction}"
     elif "protect" in state:
+        stop_order_str = f"{exit_order} Stop {protect_price:.02f}"
         return f"Protect {direction}; {stop_order_str}"
     elif "entry" in state:
+        entry_order_str = f"{entry_order} Limit {entry_price:.02f}"
         return f"Entry {direction}; {entry_order_str}"
     else:
         return "Flat"
