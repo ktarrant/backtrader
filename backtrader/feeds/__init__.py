@@ -57,3 +57,5 @@ try:
     from .iex import IexData
 except ImportError:
     pass  # The user may not have something installed
+
+from .ibcsv import IBCSVData, IBCSV

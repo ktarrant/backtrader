@@ -41,6 +41,7 @@ DATAFORMATS = dict(
     yahoocsv=bt.feeds.YahooFinanceCSVData,
     yahoocsv_unreversed=bt.feeds.YahooFinanceCSVData,
     yahoo=bt.feeds.YahooFinanceData,
+    ibcsv=bt.feeds.IBCSVData,
 )
 
 try:
