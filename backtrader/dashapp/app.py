@@ -17,6 +17,15 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 local_dir = "snapshots"
 
+strategy_optons = [
+    {"label": "None", "value": "none"},
+    {"label": "SMA Cross (Buy Only)", "value": "sma_cross"},
+]
+
+strategy_mapper = {
+    "none": None,
+    "sma_cross": bt.strategies.MA_CrossOver,
+}
 
 # ------------------------------------------------------------------------------
 # App Instantiation
@@ -41,6 +50,9 @@ app.layout = html.Div(children=[
     dcc.Dropdown(id="data-list-dropdown"),
 
     html.Div(id="dataname-field", children=""),
+
+    dcc.Dropdown(id="strategy-dropdown", options=strategy_optons,
+                 value=strategy_optons[0]["value"]),
 
     dcc.Store(id="backtest-store", data={"ohlc": ""}),
 
@@ -73,20 +85,29 @@ def update_dataname(data_list_value):
 
 @app.callback(
     Output("backtest-store", "data"),
-    [Input("dataname-field", "children")])
-def update_store(dataname):
+    [Input("dataname-field", "children"),
+     Input("strategy-dropdown", "value")])
+def update_store(dataname, strategy_key):
     if not dataname:
         return {"ohlc": ""}
-    # Run the backtest!
+
     cerebro = bt.Cerebro()
+    # configure data using provided dataname
+    # TODO: support non-local
     ibdata = bt.feeds.IBCSVData(dataname=dataname)
     cerebro.adddata(ibdata)
+    # strategy is None if user picks "none"
+    strategy = strategy_mapper[strategy_key]
+    if strategy:
+        cerebro.addstrategy(strategy)
+    # run the backtest!
     result_list = cerebro.run()
     result = result_list[0]
-    arrays = {key: list(getattr(result.data.lines, key).array)
-              for key in ["open", "high", "low", "close"]}
-    arrays["x"] = [bt.num2date(d) for d in result.data.lines.datetime.array]
-    return {"ohlc": jsonpickle.encode(arrays)}
+    # extract ohlc data
+    ohlc = {key: list(getattr(result.data.lines, key).array)
+            for key in ["open", "high", "low", "close"]}
+    ohlc["x"] = [bt.num2date(d) for d in result.data.lines.datetime.array]
+    return {"ohlc": jsonpickle.encode(ohlc)}
 
 @app.callback(
     Output("result-graph", "figure"),
@@ -95,12 +116,12 @@ def update_figure(data):
     layout = go.Layout(title=f"Backtest results",
                        xaxis={"rangeslider": {"visible": False}},
                        yaxis={"title": f"Stock Price (USD)"})
-    arrays_data = data["ohlc"]
+    ohlc_data = data["ohlc"]
 
-    if arrays_data == "":
+    if ohlc_data == "":
         return {"data": [], "layout": layout}
 
-    arrays = jsonpickle.decode(arrays_data)
+    arrays = jsonpickle.decode(ohlc_data)
 
     trace = go.Candlestick(increasing={"line": {"color": "#00CC94"}},
                            decreasing={"line": {"color": "#F50030"}},
