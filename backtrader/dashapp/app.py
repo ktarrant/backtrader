@@ -58,7 +58,7 @@ app.layout = html.Div(children=[
               data={
                   "datetime": [],
                   "ohlc": {},
-                  "lines": {}
+                  "lines": []
               }),
 
     dcc.Graph(id="result-graph"),
@@ -94,7 +94,7 @@ def update_dataname(data_list_value):
      Input("strategy-dropdown", "value")])
 def update_store(dataname, strategy_key):
     if not dataname:
-        return {"datetime": [], "ohlc": {}, "lines": {}}
+        return {"datetime": [], "ohlc": {}, "lines": []}
 
     cerebro = bt.Cerebro()
     # configure data using provided dataname
@@ -112,31 +112,53 @@ def update_store(dataname, strategy_key):
     ohlc = {key: list(getattr(result.data.lines, key).array)
             for key in ["open", "high", "low", "close"]}
     dt = [bt.num2date(d) for d in result.data.lines.datetime.array]
+    # extract indicator data
+    leg_fmt = "{alias}({params})"
+    indi_names = [
+        leg_fmt.format(alias=alias,
+                       params=",".join([str(v)
+                                        for v in vars(indi.params).values()]))
+        for indi in result.getindicators()
+        for alias in indi.lines.getlinealiases()
+        if indi.plotinfo.plot and not indi.plotinfo.subplot
+    ]
+    indi_values = [
+        list(line.array)
+        for indi in result.getindicators()
+        for line in indi.lines
+        if indi.plotinfo.plot and not indi.plotinfo.subplot
+    ]
     return {
         "datetime": dt,
         "ohlc": ohlc,
-        "lines": {},
+        "lines": [{"name": name, "y": value}
+                  for name, value in zip(indi_names, indi_values)],
     }
 
 @app.callback(
     Output("result-graph", "figure"),
     [Input("backtest-store", "data")])
-def update_figure(data):
+def update_figure(store_data):
     layout = go.Layout(title=f"Backtest results",
                        xaxis={"rangeslider": {"visible": False}},
                        yaxis={"title": f"Stock Price (USD)"})
-    dt = data["datetime"]
+    dt = store_data["datetime"]
 
     if dt == {}:
         return {"data": [], "layout": layout}
 
-    ohlc = data["ohlc"]
+    ohlc = store_data["ohlc"]
 
-    trace = go.Candlestick(x=dt,
-                           increasing={"line": {"color": "#00CC94"}},
-                           decreasing={"line": {"color": "#F50030"}},
-                           **ohlc)
-    return {"data": [trace], "layout": layout}
+    data = []
+    data += [go.Candlestick(name="ohlc",
+                            x=dt,
+                            increasing={"line": {"color": "#00CC94"}},
+                            decreasing={"line": {"color": "#F50030"}},
+                            **ohlc)]
+    for line in store_data["lines"]:
+        data += [go.Scatter(x=dt, mode="lines", **line)]
+
+    return {"data": data, "layout": layout}
 
 if __name__ == "__main__":
     app.run_server(debug=True)
