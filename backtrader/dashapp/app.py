@@ -128,11 +128,28 @@ def update_store(dataname, strategy_key):
         for line in indi.lines
         if indi.plotinfo.plot and not indi.plotinfo.subplot
     ]
+    # extract observer data
+    obs_names = [
+        alias
+        for obs in result.getobservers()
+        for alias in obs.lines.getlinealiases()
+        if obs.plotinfo.plot and not obs.plotinfo.subplot
+    ]
+    obs_values = [
+        list(line.array)
+        for obs in result.getobservers()
+        for line in obs.lines
+        if obs.plotinfo.plot and not obs.plotinfo.subplot
+
+    ]
+    # combine
+    line_names = indi_names + obs_names
+    line_values = indi_values + obs_values
     return {
         "datetime": dt,
         "ohlc": ohlc,
         "lines": [{"name": name, "y": value}
-                  for name, value in zip(indi_names, indi_values)],
+                  for name, value in zip(line_names, line_values)],
     }
 
 @app.callback(
