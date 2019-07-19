@@ -54,7 +54,12 @@ app.layout = html.Div(children=[
     dcc.Dropdown(id="strategy-dropdown", options=strategy_optons,
                  value=strategy_optons[0]["value"]),
 
-    dcc.Store(id="backtest-store", data={"ohlc": ""}),
+    dcc.Store(id="backtest-store",
+              data={
+                  "datetime": [],
+                  "ohlc": {},
+                  "lines": {}
+              }),
 
     dcc.Graph(id="result-graph"),
 ])
@@ -89,7 +94,7 @@ def update_dataname(data_list_value):
      Input("strategy-dropdown", "value")])
 def update_store(dataname, strategy_key):
     if not dataname:
-        return {"ohlc": ""}
+        return {"datetime": [], "ohlc": {}, "lines": {}}
 
     cerebro = bt.Cerebro()
     # configure data using provided dataname
@@ -106,8 +111,12 @@ def update_store(dataname, strategy_key):
     # extract ohlc data
     ohlc = {key: list(getattr(result.data.lines, key).array)
             for key in ["open", "high", "low", "close"]}
-    ohlc["x"] = [bt.num2date(d) for d in result.data.lines.datetime.array]
-    return {"ohlc": jsonpickle.encode(ohlc)}
+    dt = [bt.num2date(d) for d in result.data.lines.datetime.array]
+    return {
+        "datetime": dt,
+        "ohlc": ohlc,
+        "lines": {},
+    }
 
 @app.callback(
     Output("result-graph", "figure"),
@@ -116,16 +125,17 @@ def update_figure(data):
     layout = go.Layout(title=f"Backtest results",
                        xaxis={"rangeslider": {"visible": False}},
                        yaxis={"title": f"Stock Price (USD)"})
-    ohlc_data = data["ohlc"]
+    dt = data["datetime"]
 
-    if ohlc_data == "":
+    if dt == {}:
         return {"data": [], "layout": layout}
 
-    arrays = jsonpickle.decode(ohlc_data)
+    ohlc = data["ohlc"]
 
-    trace = go.Candlestick(increasing={"line": {"color": "#00CC94"}},
+    trace = go.Candlestick(x=dt,
+                           increasing={"line": {"color": "#00CC94"}},
                            decreasing={"line": {"color": "#F50030"}},
-                           **arrays)
+                           **ohlc)
     return {"data": [trace], "layout": layout}
 
 if __name__ == "__main__":
