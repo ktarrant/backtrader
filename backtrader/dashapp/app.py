@@ -88,6 +88,28 @@ def update_data_list(data_source_value):
 def update_dataname(data_list_value):
     return data_list_value
 
+def compute_traces(indicator, **kwargs):
+    params = ",".join([str(v) for v in vars(indicator.params).values()])
+    aliases = indicator.lines.getlinealiases()
+    line_mode = "lines",
+
+    if not indicator.plotinfo.plot:
+        return
+
+    kwargs["plot_type"] = "Subplot" if indicator.plotinfo.subplot else "Scatter"
+
+    if len(aliases) == 1:
+        line = getattr(indicator.lines, aliases[0])
+        name = "{alias}({params})".format(alias=aliases[0], params=params)
+        yield dict(name=name, y=line.array, **kwargs)
+
+    elif len(aliases) > 1:
+        for alias in aliases:
+            line = getattr(indicator.lines, alias)
+            name = "{alias}({params})".format(alias=alias, params=params)
+            yield dict(name=name, y=list(line.array), **kwargs)
+
+
 @app.callback(
     Output("backtest-store", "data"),
     [Input("dataname-field", "children"),
@@ -113,43 +135,17 @@ def update_store(dataname, strategy_key):
             for key in ["open", "high", "low", "close"]}
     dt = [bt.num2date(d) for d in result.data.lines.datetime.array]
     # extract indicator data
-    leg_fmt = "{alias}({params})"
-    indi_names = [
-        leg_fmt.format(alias=alias,
-                       params=",".join([str(v)
-                                        for v in vars(indi.params).values()]))
-        for indi in result.getindicators()
-        for alias in indi.lines.getlinealiases()
-        if indi.plotinfo.plot and not indi.plotinfo.subplot
-    ]
-    indi_values = [
-        list(line.array)
-        for indi in result.getindicators()
-        for line in indi.lines
-        if indi.plotinfo.plot and not indi.plotinfo.subplot
-    ]
-    # extract observer data
-    obs_names = [
-        alias
-        for obs in result.getobservers()
-        for alias in obs.lines.getlinealiases()
-        if obs.plotinfo.plot and not obs.plotinfo.subplot
-    ]
-    obs_values = [
-        list(line.array)
-        for obs in result.getobservers()
-        for line in obs.lines
-        if obs.plotinfo.plot and not obs.plotinfo.subplot
-
-    ]
-    # combine
-    line_names = indi_names + obs_names
-    line_values = indi_values + obs_values
+    indicators = [trace
+                  for indicator in result.getindicators()
+                  for trace in compute_traces(indicator)]
+    observers = [trace
+                  for observer in result.getobservers()
+                  for trace in compute_traces(observer)]
+    lines = indicators + observers
     return {
         "datetime": dt,
         "ohlc": ohlc,
-        "lines": [{"name": name, "y": value}
-                  for name, value in zip(line_names, line_values)],
+        "lines": lines,
     }
 
 @app.callback(
@@ -173,7 +169,11 @@ def update_figure(store_data):
                             decreasing={"line": {"color": "#F50030"}},
                             **ohlc)]
     for line in store_data["lines"]:
-        data += [go.Scatter(x=dt, mode="lines", **line)]
+        plot_type = line.pop("plot_type")
+        if plot_type == "Subplot":
+            pass
+        else:
+            data += [go.Scatter(x=dt, **line)]
 
     return {"data": data, "layout": layout}
 
