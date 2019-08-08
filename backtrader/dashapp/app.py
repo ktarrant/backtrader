@@ -68,6 +68,8 @@ app.layout = html.Div(children=[
     dcc.Graph(id="result-lines-graph"),
 
     dcc.Graph(id="result-trades-graph"),
+
+    dcc.Graph(id="result-pnl-graph"),
 ])
 
 
@@ -213,6 +215,56 @@ def update_trades_graph(store_data):
                   values=values,
                   marker=dict(colors=colors),
                   textinfo="label"))
+    return fig
+
+@app.callback(
+    Output("result-pnl-graph", "figure"),
+    [Input("backtest-store", "data")])
+def update_pnl_graph(store_data):
+    fig = go.Figure()
+    # Here we modify the tickangle of the xaxis, resulting in rotated labels.
+    fig.update_layout(title=f"PnL Summary",
+                      barmode='group',
+                      xaxis_tickangle=-45)
+
+    labels = ["Total", "Won", "Lost"]
+    try:
+        trades = store_data["analyzers"]["trades"]
+
+        fig.add_trace(go.Bar(
+            x=labels,
+            y=[
+                trades["pnl"]["net"]["average"],
+                trades["won"]["pnl"]["average"],
+                trades["lost"]["pnl"]["average"],
+            ],
+            name="Total",
+            marker_color='#476C9B'
+        ))
+        fig.add_trace(go.Bar(
+            x=labels,
+            y=[
+                trades["long"]["pnl"]["average"],
+                trades["long"]["pnl"]["won"]["average"],
+                trades["long"]["pnl"]["lost"]["average"],
+            ],
+            name='Long',
+            marker_color='#58BC82'
+        ))
+        fig.add_trace(go.Bar(
+            x=labels,
+            y=[
+                trades["short"]["pnl"]["average"],
+                trades["short"]["pnl"]["won"]["average"],
+                trades["short"]["pnl"]["lost"]["average"],
+            ],
+            name='Short',
+            marker_color='#DF2935'
+        ))
+
+    except KeyError:
+        return fig
+
     return fig
 
 
