@@ -65,7 +65,9 @@ app.layout = html.Div(children=[
                   "analyzers": {},
               }),
 
-    dcc.Graph(id="result-graph"),
+    dcc.Graph(id="result-lines-graph"),
+
+    dcc.Graph(id="result-trades-graph"),
 ])
 
 
@@ -161,7 +163,7 @@ def update_store(dataname, strategy_key):
 
 
 @app.callback(
-    Output("result-graph", "figure"),
+    Output("result-lines-graph", "figure"),
     [Input("backtest-store", "data")])
 def update_figure(store_data):
     layout = go.Layout(title=f"Backtest results",
@@ -188,6 +190,31 @@ def update_figure(store_data):
             data += [go.Scatter(x=dt, **line)]
 
     return {"data": data, "layout": layout}
+
+
+@app.callback(
+    Output("result-trades-graph", "figure"),
+    [Input("backtest-store", "data")])
+def update_figure(store_data):
+    layout = go.Layout(title=f"Trades Summary",
+                       margin={"l": 300, "r": 300, },
+                       legend={"x": 1, "y": 0.7})
+    labels = ["Winning Longs", "Losing Longs",
+              "Winning Shorts", "Losing Shorts"]
+    colors = ["#8FE388", "#DD614A",
+              "#58BC82", "#DF2935"]
+    try:
+        trades = store_data["analyzers"]["trades"]
+        values = [trades["long"]["won"], trades["long"]["lost"],
+                  trades["short"]["won"], trades["short"]["lost"]]
+    except KeyError:
+        return {"data": [], "layout": layout}
+
+    trace = go.Pie(labels=labels,
+                   values=values,
+                   marker=dict(colors=colors),
+                   textinfo="label")
+    return {"data": [trace], "layout": layout}
 
 
 if __name__ == "__main__":
