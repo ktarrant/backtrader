@@ -91,7 +91,6 @@ def update_dataname(data_list_value):
 def compute_traces(indicator, **kwargs):
     params = ",".join([str(v) for v in vars(indicator.params).values()])
     aliases = indicator.lines.getlinealiases()
-    line_mode = "lines",
 
     if not indicator.plotinfo.plot:
         return
