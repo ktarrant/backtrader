@@ -5,7 +5,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-import jsonpickle
 
 import backtrader as bt
 
@@ -25,6 +24,10 @@ strategy_optons = [
 strategy_mapper = {
     "none": None,
     "sma_cross": bt.strategies.MA_CrossOver,
+}
+
+analyzer_mapper = {
+    "trades": bt.analyzers.TradeAnalyzer,
 }
 
 # ------------------------------------------------------------------------------
@@ -58,7 +61,8 @@ app.layout = html.Div(children=[
               data={
                   "datetime": [],
                   "ohlc": {},
-                  "lines": []
+                  "lines": [],
+                  "analyzers": {},
               }),
 
     dcc.Graph(id="result-graph"),
@@ -82,11 +86,13 @@ def update_data_list(data_source_value):
     else:
         raise NotImplementedError()
 
+
 @app.callback(
     Output("dataname-field", "children"),
     [Input("data-list-dropdown", "value")])
 def update_dataname(data_list_value):
     return data_list_value
+
 
 def compute_traces(indicator, **kwargs):
     params = ",".join([str(v) for v in vars(indicator.params).values()])
@@ -115,7 +121,7 @@ def compute_traces(indicator, **kwargs):
      Input("strategy-dropdown", "value")])
 def update_store(dataname, strategy_key):
     if not dataname:
-        return {"datetime": [], "ohlc": {}, "lines": []}
+        return {"datetime": [], "ohlc": {}, "lines": [], "analyzers": {}}
 
     cerebro = bt.Cerebro()
     # configure data using provided dataname
@@ -126,6 +132,9 @@ def update_store(dataname, strategy_key):
     strategy = strategy_mapper[strategy_key]
     if strategy:
         cerebro.addstrategy(strategy)
+    # add analyzers
+    for name in analyzer_mapper:
+        cerebro.addanalyzer(analyzer_mapper[name], _name=name)
     # run the backtest!
     result_list = cerebro.run()
     result = result_list[0]
@@ -138,14 +147,18 @@ def update_store(dataname, strategy_key):
                   for indicator in result.getindicators()
                   for trace in compute_traces(indicator)]
     observers = [trace
-                  for observer in result.getobservers()
-                  for trace in compute_traces(observer)]
+                 for observer in result.getobservers()
+                 for trace in compute_traces(observer)]
     lines = indicators + observers
+    analyzers = {name: getattr(result.analyzers, name).get_analysis()
+                 for name in analyzer_mapper}
     return {
         "datetime": dt,
         "ohlc": ohlc,
         "lines": lines,
+        "analyzers": analyzers,
     }
+
 
 @app.callback(
     Output("result-graph", "figure"),
@@ -175,6 +188,7 @@ def update_figure(store_data):
             data += [go.Scatter(x=dt, **line)]
 
     return {"data": data, "layout": layout}
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
