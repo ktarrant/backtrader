@@ -165,40 +165,39 @@ def update_store(dataname, strategy_key):
 @app.callback(
     Output("result-lines-graph", "figure"),
     [Input("backtest-store", "data")])
-def update_figure(store_data):
-    layout = go.Layout(title=f"Backtest results",
-                       xaxis={"rangeslider": {"visible": False}},
-                       yaxis={"title": f"Stock Price (USD)"})
+def update_lines_graph(store_data):
+    fig = go.Figure(layout=go.Layout(title=f"Backtest results",
+                                     xaxis={"rangeslider": {"visible": False}},
+                                     yaxis={"title": f"Stock Price (USD)"}))
     dt = store_data["datetime"]
 
     if dt == {}:
-        return {"data": [], "layout": layout}
+        return fig
 
     ohlc = store_data["ohlc"]
-
-    data = []
-    data += [go.Candlestick(name="ohlc",
-                            x=dt,
-                            increasing={"line": {"color": "#00CC94"}},
-                            decreasing={"line": {"color": "#F50030"}},
-                            **ohlc)]
+    fig.add_trace(go.Candlestick(name="ohlc",
+                                 x=dt,
+                                 increasing={"line": {"color": "#00CC94"}},
+                                 decreasing={"line": {"color": "#F50030"}},
+                                 **ohlc))
     for line in store_data["lines"]:
         plot_type = line.pop("plot_type")
         if plot_type == "Subplot":
             pass
         else:
-            data += [go.Scatter(x=dt, **line)]
+            fig.add_trace(go.Scatter(x=dt, **line))
 
-    return {"data": data, "layout": layout}
+    return fig
 
 
 @app.callback(
     Output("result-trades-graph", "figure"),
     [Input("backtest-store", "data")])
-def update_figure(store_data):
-    layout = go.Layout(title=f"Trades Summary",
-                       margin={"l": 300, "r": 300, },
-                       legend={"x": 1, "y": 0.7})
+def update_trades_graph(store_data):
+    fig = go.Figure()
+    fig.update_layout(title=f"Trades Summary")
+                      # margin={"l": 300, "r": 300, },
+                      # legend={"x": 1, "y": 0.7}))
     labels = ["Winning Longs", "Losing Longs",
               "Winning Shorts", "Losing Shorts"]
     colors = ["#8FE388", "#DD614A",
@@ -208,13 +207,13 @@ def update_figure(store_data):
         values = [trades["long"]["won"], trades["long"]["lost"],
                   trades["short"]["won"], trades["short"]["lost"]]
     except KeyError:
-        return {"data": [], "layout": layout}
+        return fig
 
-    trace = go.Pie(labels=labels,
-                   values=values,
-                   marker=dict(colors=colors),
-                   textinfo="label")
-    return {"data": [trace], "layout": layout}
+    fig.add_trace(go.Pie(labels=labels,
+                  values=values,
+                  marker=dict(colors=colors),
+                  textinfo="label"))
+    return fig
 
 
 if __name__ == "__main__":
